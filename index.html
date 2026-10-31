@@ -357,6 +357,7 @@ table.mt td:nth-child(9) .ci,table.mt td:nth-child(10) .ci{width:1px!important;m
 .tw{touch-action:pan-x pan-y;overscroll-behavior-x:contain}
 table.mt td.repc,table.mt th:nth-child(11){width:300px;min-width:300px;max-width:300px}
 table.mt td.repc textarea.ci{width:100%!important;min-width:0;min-height:50px;height:50px;resize:none;overflow-y:auto;font-size:.9375rem;line-height:1.25;padding:4px 8px;box-sizing:border-box}
+.mats .mat{grid-template-columns:minmax(0,1fr) 76px 44px}.mats .mat select.in{min-height:40px}.matx{min-height:40px;min-width:44px;padding:0;font-size:1.25rem}
 </style>
 
 <div class="app">
@@ -655,13 +656,27 @@ function refreshScbLive(){
 }
 
 /* ---------- other views ---------- */
-function matsHtml(){
-  var h='<div class="mats">';
-  MATERIALS.forEach(function(m,k){
-    h+='<label class="mat"><span>'+esc(m)+'</span><input class="in mono matin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" autocomplete="off" data-matv="'+k+'" value="'+((S.mats[m]||0)?(S.mats[m]):'')+'" placeholder="0" aria-label="'+esc(m)+' quantity"></label>';
-  });
-  return h+'</div>';
+function matRows(){
+  if(!ui.matRows)ui.matRows=[];
+  MATERIALS.forEach(function(m){if((S.mats[m]||0)>0&&ui.matRows.indexOf(m)<0)ui.matRows.push(m);});
+  return ui.matRows;
 }
+function matsInner(){
+  var rows=matRows(),h='';
+  rows.forEach(function(m,r){
+    var k=MATERIALS.indexOf(m),o='<option value="">Choose item\u2026</option>';
+    MATERIALS.forEach(function(x){if(x===m||rows.indexOf(x)<0)o+='<option'+(x===m?' selected':'')+'>'+esc(x)+'</option>';});
+    h+='<div class="mat"><select class="in" data-matsel="'+r+'" aria-label="Item '+(r+1)+'">'+o+'</select>'+
+      '<input class="in mono matin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" autocomplete="off"'+(k<0?' disabled':' data-matv="'+k+'"')+' value="'+(k>=0&&(S.mats[m]||0)?S.mats[m]:'')+'" placeholder="0" aria-label="Quantity of '+esc(m||'item')+'">'+
+      '<button type="button" class="btn matx" data-matdel="'+r+'" aria-label="Remove item '+(r+1)+'">\u00d7</button></div>';
+  });
+  var left=MATERIALS.length-rows.length,hasBlank=rows.indexOf('')>=0;
+  if(!rows.length)h+='<p class="hint" style="margin:0 0 8px">No items yet. Tap Add item and choose what was used.</p>';
+  h+='<div><button type="button" class="btn" data-matadd="1"'+(left<=0||hasBlank?' disabled':'')+'>+ Add item</button></div>';
+  return h;
+}
+function matsHtml(){return '<div class="mats" id="matbox">'+matsInner()+'</div>';}
+function matsRefresh(focusSel){var b=$('matbox');if(!b)return;b.innerHTML=matsInner();if(focusSel!==undefined){var e=b.querySelector(focusSel);if(e)e.focus();}}
 function dlOpts(id,arr){$(id).innerHTML=arr.map(function(x){return '<option value="'+esc(x)+'">';}).join('');}
 function calWarn(d){return '';}
 
@@ -763,7 +778,7 @@ function finishDay(){
   var worked=[],keep=[];S.scbs.forEach(function(s){(stat(s).state==='new'?keep:worked).push(s);});
   if(!worked.length)return false;
   S.archive.push({id:Date.now(),date:S.job.date,ptw:S.job.ptw,job:JSON.parse(JSON.stringify(S.job)),scbs:worked,mats:S.mats});
-  S.scbs=keep;S.sel=0;S.mats=zeroMats();
+  S.scbs=keep;S.sel=0;S.mats=zeroMats();ui.matRows=null;
   var ds=keep.map(function(s){return s.planned;}).sort();
   S.job.ptw='';S.job.date=ds[0]||todayISO();
   ui.day='';ui.imp.replace=null;
@@ -1293,7 +1308,7 @@ function syRender(){
       row.replaceWith(nr);nr.querySelectorAll('input.ci[data-jf]').forEach(fit);
     });
     if(cg.ids.length)markDups();
-    if(cg.mats){S.scbs.length&&MATERIALS.forEach(function(m,k){var e=document.querySelector('[data-matv="'+k+'"]');if(e&&e!==a)e.value=(S.mats[m]||0)?S.mats[m]:'';});}
+    if(cg.mats){if(ui.matRows)ui.matRows=ui.matRows.filter(function(m){return !m||(S.mats[m]||0)>0;});var mb=$('matbox');if(mb&&!(a&&mb.contains(a)))matsRefresh();else if(mb)blocked=true;}
     if(blocked){sy.pendRender=true;sy.chg={full:true,ids:[]};}else{sy.pendRender=false;sy.chg=null;}
     return;
   }
@@ -1394,7 +1409,7 @@ function nextStr(el){
   if(!n){var o=k==='voc'?'imp':'voc';n=document.querySelector('[data-'+o+'="0"]');}
   if(n){n.focus();try{n.select();}catch(e){}n.scrollIntoView({block:'center',behavior:'smooth'});}else{el.blur();}
 }
-pane.addEventListener('keydown',function(e){var t=e.target;if(e.key==='Enter'&&t.hasAttribute&&t.hasAttribute('data-matv')){e.preventDefault();var n=document.querySelector('[data-matv="'+(+t.getAttribute('data-matv')+1)+'"]');if(n){n.focus();n.scrollIntoView({block:'center',behavior:'smooth'});}else t.blur();}});
+pane.addEventListener('keydown',function(e){var t=e.target;if(e.key==='Enter'&&t.hasAttribute&&t.hasAttribute('data-matv')){e.preventDefault();var all=[].slice.call(document.querySelectorAll('.matin:not([disabled])')),n=all[all.indexOf(t)+1];if(n){n.focus();n.scrollIntoView({block:'center',behavior:'smooth'});}else t.blur();}});
 var nb=document.createElement('button');nb.type='button';nb.id='nextbar';nb.className='btn pri';nb.hidden=true;nb.textContent='Next string \u25B8';document.body.appendChild(nb);
 function placeNb(){var vv=window.visualViewport;nb.style.bottom=(vv?Math.max(12,window.innerHeight-vv.height-vv.offsetTop+12):12)+'px';}
 if(window.visualViewport){visualViewport.addEventListener('resize',placeNb);visualViewport.addEventListener('scroll',placeNb);}
@@ -1414,6 +1429,8 @@ pane.addEventListener('click',function(e){
   if(d.now){s[d.now]=nowHM();save();renderScb();chrome();return;}
   if(d.nav){var n=S.sel+parseInt(d.nav,10);if(n>=0&&n<S.scbs.length){S.sel=n;save();show('scb',true);}return;}
   if(d.preset!==undefined){var p=PRESETS[+d.preset];if(s.remarks.indexOf(p)<0){s.remarks=(s.remarks?s.remarks.replace(/\s+$/,'')+' ':'')+p;save();var t=$('remarks');if(t)t.value=s.remarks;chrome();}return;}
+  if(d.matadd){matRows().push('');matsRefresh('[data-matsel="'+(ui.matRows.length-1)+'"]');return;}
+  if(d.matdel!==undefined){var rr=+d.matdel,nm=ui.matRows[rr];if(nm)S.mats[nm]=0;ui.matRows.splice(rr,1);save();matsRefresh();return;}
   if(d.mat!==undefined){var m=MATERIALS[+d.mat];S.mats[m]=Math.max(0,(S.mats[m]||0)+parseInt(d.d,10));save();show(ui.view,false);return;}
   if(d.exp){ui.exp=d.exp;renderExport();return;}
   if(d.expdate!==undefined){ui.expDate=d.expdate;renderExport();return;}
@@ -1449,7 +1466,7 @@ pane.addEventListener('click',function(e){
       S.job.date=a0.date;if(a0.ptw)S.job.ptw=a0.ptw;S.archive.splice(ix,1);save();toast('Day reopened');show('main',true);chrome();}return;}
   if(d.adel){var ak='ad'+d.adel;if(ui.armed===ak){S.archive=S.archive.filter(function(a){return String(a.id)!==d.adel;});ui.armed=null;save();renderJob();}else{ui.armed=ak;b.textContent='Tap again';b.classList.add('armed');setTimeout(function(){if(ui.armed===ak){ui.armed=null;if(b.isConnected){b.textContent='Delete';b.classList.remove('armed');}}},3000);}return;}
   if(d.impgo){var ri=parseImport(ui.imp.text,ui.imp.replace);if(!ri.items.length){toast('No SCB lines found');return;}
-    if(ui.imp.replace){S.scbs=[];S.sel=0;var m0={};MATERIALS.forEach(function(x){m0[x]=0;});S.mats=m0;}
+    if(ui.imp.replace){S.scbs=[];S.sel=0;var m0={};MATERIALS.forEach(function(x){m0[x]=0;});S.mats=m0;ui.matRows=null;}
     ri.items.forEach(function(x){S.scbs.push(x);});
     if(ui.imp.replace){var ds=Object.keys(ri.days).sort();if(ds.length)S.job.date=ds[0];}
     ui.imp.text='';ui.imp.replace=null;ui.day='';save();show('main',true);chrome();toast(ri.items.length+' locations imported');return;}
@@ -1467,6 +1484,7 @@ pane.addEventListener('click',function(e){
 pane.addEventListener('input',function(e){
   var t=e.target,d=t.dataset,s=cur();
   if(d.f){s[d.f]=t.value;}
+  else if(d.matsel!==undefined){var rw=+d.matsel,old=ui.matRows[rw],nv=t.value;if(old&&nv!==old){S.mats[nv]=nv?(S.mats[old]||0):0;S.mats[old]=0;}ui.matRows[rw]=nv;save();matsRefresh(nv?'[data-matv="'+MATERIALS.indexOf(nv)+'"]':'[data-matsel="'+rw+'"]');return;}
   else if(d.matv!==undefined){var mv=t.value.replace(/\D/g,'').slice(0,5);if(mv!==t.value)t.value=mv;S.mats[MATERIALS[+d.matv]]=mv===''?0:parseInt(mv,10);}
   else if(d.note){s.notes[d.note]=t.value;}
   else if(d.voc!==undefined){s.voc[+d.voc]=t.value;}
