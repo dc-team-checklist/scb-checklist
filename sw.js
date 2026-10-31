@@ -9,7 +9,9 @@ self.addEventListener('fetch',function(e){
   e.respondWith(new Promise(function(res){
     var done=false,t=setTimeout(function(){if(done)return;fromCache(r).then(function(m){if(m&&!done){done=true;res(m);}});},3500);
     fetch(r).then(function(n){
-      if(done)return;done=true;clearTimeout(t);
+      if(done)return;
+      if(!n.ok){clearTimeout(t);fromCache(r).then(function(m){done=true;res(m||n);});return;}
+      done=true;clearTimeout(t);
       var cp=n.clone();if(n.ok)caches.open(C).then(function(c){c.put(r,cp);});
       res(n);
     }).catch(function(){
