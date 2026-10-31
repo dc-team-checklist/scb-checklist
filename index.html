@@ -496,6 +496,8 @@ if(!S.archive)S.archive=[];
 if(!S.names)S.names={techs:TECHS.slice(),sups:SUPS.slice()};
 if(!S.names.obs)S.names.obs=PRESETS.slice(0,4);
 if(!S.names.rem){S.names.rem=(S.names.phr&&S.names.phr.length?S.names.phr:PRESETS.slice(4)).filter(function(p){return PRESETS.slice(0,4).indexOf(p)<0;});}
+function ensureNames(){['clamp','ir','mm','pu'].forEach(function(k){if(!S.names[k])S.names[k]=SERIALS[k].slice();});}
+ensureNames();
 S.names.v=3;
 var ui={syd:{},day:'',filter:'all',view:'main',exp:'summary',armed:null,unlocked:false,phrOpen:false,expDay:'cur',imp:{text:'',replace:null},gen:{comm:'',block:'',inv:'',scb:'',strings:'10',row:'232',date:''}};
 var saveT=null;
@@ -682,7 +684,7 @@ function namesHtml(){
   function blk(key,title,wide,ph){var arr=S.names[key];
     return '<div'+(wide?' style="grid-column:1/-1"':'')+'><h3 style="margin-bottom:8px">'+title+'</h3><div class="chips">'+(arr.length?arr.map(function(n,i){return '<span class="nchip">'+esc(n)+'<button type="button" data-ndel="'+key+':'+i+'" aria-label="Remove '+esc(n)+'">×</button></span>';}).join(''):'<span class="hint">None yet.</span>')+'</div>'+
       '<div class="ing" style="margin-top:10px"><input class="in" id="nin-'+key+'" data-nin="'+key+'" placeholder="'+ph+'" aria-label="New entry in '+title+'"><button type="button" class="btn" data-nadd="'+key+'">Add</button></div></div>';}
-  return '<section class="card"><h2>Dropdown lists</h2><p class="hint" style="margin:-6px 0 14px">Names appear as dropdowns in Job details above and on the Main sheet. Observation sentences appear in the dropdown next to the Observations numbers. Remark sentences appear in the Remarks dropdown on the Main sheet.</p><div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">'+blk('techs','Technicians',false,'Add a name')+blk('sups','PM supervisors',false,'Add a name')+blk('obs','Observation sentences',true,'Add a sentence')+blk('rem','Remark sentences',true,'Add a sentence')+'</div></section>';
+  return '<section class="card"><h2>Dropdown lists</h2><p class="hint" style="margin:-6px 0 14px">Names appear as dropdowns in Job details above and on the Main sheet. Serial number lists feed the Testing instruments dropdowns. Observation sentences appear in the dropdown next to the Observations numbers. Remark sentences appear in the Remarks dropdown on the Main sheet.</p><div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">'+blk('techs','Technicians',false,'Add a name')+blk('sups','PM supervisors',false,'Add a name')+blk('obs','Observation sentences',true,'Add a sentence')+blk('rem','Remark sentences',true,'Add a sentence')+blk('clamp','Clamp meter serial numbers',false,'Add a serial no.')+blk('ir','IR camera serial numbers',false,'Add a serial no.')+blk('mm','Multimeter serial numbers',false,'Add a serial no.')+blk('pu','Proving unit serial numbers',false,'Add a serial no.')+'</div></section>';
 }
 function pinHtml(){
   return '<section class="card"><h2>Supervisor PIN</h2><p class="hint" style="margin:-6px 0 12px">PM plan asks for this PIN, so technicians can use the Main sheet and checklists but cannot change lists, the SCB list or job details. This is a lock for the page, not secure storage.</p><div class="fields"><label class="f">New PIN<input class="in mono" id="pin-n1" type="password" inputmode="numeric" autocomplete="off" maxlength="12"></label><label class="f">Repeat new PIN<input class="in mono" id="pin-n2" type="password" inputmode="numeric" autocomplete="off" maxlength="12"></label></div><div class="navrow" style="justify-content:flex-start;margin-top:12px"><button type="button" class="btn" data-chpin="1">Change PIN</button></div></section>';
@@ -849,7 +851,7 @@ function instEdit(j){
   h+='<section class="card"><h2>Testing instruments used</h2><div class="fields">';
   [['clamp','Clamp meter'],['ir','IR camera'],['mm','Multimeter'],['pu','Proving unit']].forEach(function(x){
     var o=j.inst[x[0]],w=calWarn(o.cal);
-    h+='<div><label class="f">'+x[1]+' serial no.<input class="in mono" list="dl-'+x[0]+'" data-inst="'+x[0]+'" data-k="sn" value="'+esc(o.sn)+'"></label>'+
+    h+='<div><label class="f">'+x[1]+' serial no.'+nameSel(S.names[x[0]]||[],o.sn,'data-inst="'+x[0]+'" data-k="sn"',x[1]+' serial no.')+'</label>'+
       '<label class="f" style="margin-top:6px">Calibration date<input class="in mono" type="date" data-inst="'+x[0]+'" data-k="cal" value="'+esc(o.cal)+'"></label>'+
       '<div class="warnline" id="cw-'+x[0]+'">'+w+'</div></div>';
   });
@@ -1267,6 +1269,7 @@ function syApply(R){
     }
   }
   if(!ch)return false;
+  ensureNames();
   if(S.scbs.map(function(x){return x.id;}).join(',')!==prevOrd)cg.full=true;
   var ix=-1;S.scbs.forEach(function(x,i){if(x.id===curId)ix=i;});
   S.sel=ix>=0?ix:Math.min(S.sel,Math.max(0,S.scbs.length-1));
