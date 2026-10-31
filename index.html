@@ -355,6 +355,8 @@ table.mt td:nth-child(9) .ci,table.mt td:nth-child(10) .ci{width:1px!important;m
 .roval{min-height:44px;padding:10px 12px;background:var(--surface2);border:1.5px solid var(--line);border-radius:6px;font-weight:500;overflow-wrap:anywhere}
 .ci.dup{background:var(--warn-bg);color:var(--nok);font-weight:700;outline:2px solid var(--nok);outline-offset:-2px}
 .tw{touch-action:pan-x pan-y;overscroll-behavior-x:contain}
+table.mt td.repc,table.mt th:nth-child(11){width:300px;min-width:300px;max-width:300px}
+table.mt td.repc textarea.ci{width:100%!important;min-width:0;min-height:50px;height:50px;resize:none;overflow-y:auto;font-size:.9375rem;line-height:1.25;padding:4px 8px;box-sizing:border-box}
 </style>
 
 <div class="app">
@@ -724,7 +726,7 @@ function nextUnfinished(){
   for(var k=1;k<=n;k++){var i=(from+k+n)%n;if(stat(S.scbs[i]).state!=='done'){goTo(i);return;}}
   toast('All SCBs are done');
 }
-var FITMIN={replaced:14,obs:9,remNo:9},FITMAX={replaced:46,obs:30,remNo:30};
+var FITMIN={obs:9,remNo:9},FITMAX={obs:30,remNo:30};
 function fit(el){var k=el.dataset.jf;if(k==='obs'||k==='remNo'){if(!el.value){el.style.width='';return;}var cs=getComputedStyle(el),cv=fit.cv||(fit.cv=document.createElement('canvas').getContext('2d'));cv.font=cs.fontStyle+' '+cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;el.style.width=Math.ceil(cv.measureText(el.value).width)+8+'px';return;}if(!(k in FITMIN))return;var n=String(el.value).length+2;el.style.width=Math.min(FITMAX[k],Math.max(FITMIN[k],n))+'ch';}
 function fitAll(){document.querySelectorAll('table.mt input.ci[data-jf]').forEach(fit);}
 function mrow(s,i){
@@ -734,7 +736,7 @@ function mrow(s,i){
     '<td class="c mono ro">'+esc(s.row)+'</td><td class="c mono ro">'+fmtDate(s.planned)+'</td><td class="c mono ro">'+esc(s.strings)+'</td>'+
     '<td class="c commc'+(c==='NOT OK'?' cnok':'')+'">'+esc(c)+'</td>'+
     tcell(s,i,'start')+tcell(s,i,'end')+f('irBefore','c mono','','inputmode="numeric" ')+f('irAfter','c mono'+(s.irAuto?' auto':''),'','inputmode="numeric" ')+
-    f('replaced','')+'<td><div class="obsc'+(s.obsPh?' hasph':'')+'"><input class="ci mono" data-ji="'+i+'" data-jf="obs" placeholder="#" value="'+esc(s.obs)+'" aria-label="Observation string numbers row '+(i+1)+'">'+phBox(S.names.obs,s.obsPh||'','data-ji="'+i+'" data-jf="obsPh"','Observation sentence row '+(i+1))+'</div></td><td><div class="obsc'+(s.remarks?' hasph':'')+'"><input class="ci mono" data-ji="'+i+'" data-jf="remNo" placeholder="#" value="'+esc(s.remNo||'')+'" aria-label="Remark string numbers row '+(i+1)+'">'+phBox(S.names.rem,s.remarks||'','data-ji="'+i+'" data-jf="remarks"','Remarks row '+(i+1))+'</div></td>'+
+    '<td class="repc"><textarea class="ci" rows="2" data-ji="'+i+'" data-jf="replaced" aria-label="replaced row '+(i+1)+'">'+esc(s.replaced)+'</textarea></td><td><div class="obsc'+(s.obsPh?' hasph':'')+'"><input class="ci mono" data-ji="'+i+'" data-jf="obs" placeholder="#" value="'+esc(s.obs)+'" aria-label="Observation string numbers row '+(i+1)+'">'+phBox(S.names.obs,s.obsPh||'','data-ji="'+i+'" data-jf="obsPh"','Observation sentence row '+(i+1))+'</div></td><td><div class="obsc'+(s.remarks?' hasph':'')+'"><input class="ci mono" data-ji="'+i+'" data-jf="remNo" placeholder="#" value="'+esc(s.remNo||'')+'" aria-label="Remark string numbers row '+(i+1)+'">'+phBox(S.names.rem,s.remarks||'','data-ji="'+i+'" data-jf="remarks"','Remarks row '+(i+1))+'</div></td>'+
     '<td class="c" id="ms-'+i+'">'+stCell(s)+'</td></tr>';
 }
 function updMainRow(i){
@@ -1487,6 +1489,7 @@ pane.addEventListener('input',function(e){
   chrome();
 });
 pane.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.tagName==='TEXTAREA'&&e.target.dataset.jf==='replaced'){e.preventDefault();return;}
   if(e.key==='Enter'&&(e.target.id==='pin-a'||e.target.id==='pin-b')){e.preventDefault();var ub=pane.querySelector('[data-unlock]');if(ub)ub.click();return;}
   if(e.key==='Enter'&&viKind(e.target)){e.preventDefault();nextStr(e.target);return;}
   if(e.key==='Enter'&&e.target.dataset.nin){e.preventDefault();var bb=pane.querySelector('[data-nadd="'+e.target.dataset.nin+'"]');if(bb)bb.click();}
