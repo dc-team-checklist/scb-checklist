@@ -1582,7 +1582,7 @@ function rpRender(){
     '<div class="rpo">'+(tx?esc(tx):'<span style="color:var(--muted,#6b7280)">Nothing added yet</span>')+'</div>'+
     '<div class="rpl">1 \u00b7 TAP THE STRINGS</div><div class="rpg">'+g+'</div>'+
     '<div class="rpsel">Selected: <b>'+(rp.sel.length?rp.sel.join(','):'\u2014')+'</b></div>'+
-    (rp.k==='obs'?'<div class="rpl">2 \u00b7 TAP WHAT WAS DONE</div><div class="rpg"><button type="button" class="rb cp" data-rpp="FHN">FHN</button><button type="button" class="rb cp" data-rpp="FHP">FHP</button></div><div class="rpl">3 \u00b7 TAP THE ENDING OR SENTENCE</div>':(rp.k==='rep'?'<div class="rpl">2 \u00b7 IMAGE NUMBER (optional)</div><div class="rpg"><input class="in mono" id="rp-img" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="8" value="'+esc(rp.img)+'" style="width:170px;min-height:48px;font-size:1.25rem;font-weight:700"></div><div class="rpl">3 \u00b7 TAP THE COMPONENT</div>':'<div class="rpl">2 \u00b7 TAP THE '+((rp.k==='rem')?'SENTENCE':'COMPONENT')+'</div>'))+'<div class="rpg'+((rp.k==='obs'||rp.k==='rem')?' rpcol':'')+'">'+c+'</div>'+
+    (rp.k==='obs'?'<div class="rpl">2 \u00b7 TAP WHAT WAS DONE</div><div class="rpg"><button type="button" class="rb cp" data-rpp="FHN">FHN</button><button type="button" class="rb cp" data-rpp="FHP">FHP</button></div><div class="rpl">3 \u00b7 TAP THE ENDING OR SENTENCE</div>':(rp.k==='rep'?'<div class="rpl">2 \u00b7 IMAGE NUMBER (optional)</div><div class="rpg"><input class="in mono" id="rp-img" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="30" value="'+esc(rp.img)+'" style="width:210px;min-height:48px;font-size:1.25rem;font-weight:700"><button type="button" class="rb" data-rpslash="1" style="min-width:64px;min-height:48px;font-size:1.5rem;font-weight:700">/</button></div><div class="rpl">3 \u00b7 TAP THE COMPONENT</div>':'<div class="rpl">2 \u00b7 TAP THE '+((rp.k==='rem')?'SENTENCE':'COMPONENT')+'</div>'))+'<div class="rpg'+((rp.k==='obs'||rp.k==='rem')?' rpcol':'')+'">'+c+'</div>'+
     '<div class="rpg" style="margin-top:16px"><button type="button" class="rb" data-rpundo="1">Undo last</button>'+'<button type="button" class="rb" data-rptype="1">Type instead</button><button type="button" class="rb go" data-rpdone="1">Done</button></div>';
 }
 function rpSents(){
@@ -1618,10 +1618,11 @@ function pxUndo(sc,k){
 }
 function rpSync(){var sc=S.scbs[rp.i];save();rowRefresh(rp.i);var mb=$('matbox');if(mb&&ui.view==='main')matsRefresh();}
 function rpClose(){
-  if(rp.k==='rep'&&rp.i>=0&&S.scbs[rp.i]){var sc=S.scbs[rp.i],t=String(sc.replaced||'').replace(/[,\s]+$/,'');if(t){t=t.replace(/\s*\(\d+\)$/,'');if(rp.img)t+=' ('+rp.img+')';sc.replaced=t;rowRefresh(rp.i);save();var mb=$('matbox');if(mb&&ui.view==='main')matsRefresh();}}
+  if(rp.k==='rep'&&rp.i>=0&&S.scbs[rp.i]){var sc=S.scbs[rp.i],t=String(sc.replaced||'').replace(/[,\s]+$/,'');if(t){t=t.replace(/\s*\([\d\/]+\)$/,'');var im=String(rp.img||'').replace(/\/+$/,'');if(im)t+=' ('+im+')';sc.replaced=t;rowRefresh(rp.i);save();var mb=$('matbox');if(mb&&ui.view==='main')matsRefresh();}}
   rpEl.hidden=true;rp.i=-1;rp.sel=[];rp.k='rep';rp.amp=false;rp.img='';
 }
-rpEl.addEventListener('input',function(e){if(e.target.id==='rp-img'){var v=e.target.value.replace(/\D/g,'').slice(0,8);if(v!==e.target.value)e.target.value=v;rp.img=v;}});
+rpEl.addEventListener('mousedown',function(e){if(e.target.closest&&e.target.closest('[data-rpslash]'))e.preventDefault();});
+rpEl.addEventListener('input',function(e){if(e.target.id==='rp-img'){var v=e.target.value.replace(/[^\d\/]/g,'').replace(/^\/+/,'').replace(/\/{2,}/g,'/').slice(0,30);if(v!==e.target.value)e.target.value=v;rp.img=v;}});
 rpEl.addEventListener('click',function(e){
   if(e.target===rpEl){rpClose();return;}
   var b=e.target.closest('button');if(!b)return;var d=b.dataset,sc=S.scbs[rp.i];if(!sc)return;
@@ -1638,6 +1639,7 @@ rpEl.addEventListener('click',function(e){
     rp.sel=[];rpSync();rpRender();return;}
   if(d.rpp){var T1=RPK.obs.get(sc).trim(),pc=(rp.sel.length?rp.sel.join(',')+' ':'')+d.rpp;pxSet(sc,'obs',/(?:FHN|FHP)$/.test(T1)?T1+' & '+pc:(T1?T1+' ':'')+pc);rp.sel=[];rpSync();rpRender();return;}
     if(d.rpfuse){var cf=String(sc.replaced||'').replace(/[,\s]+$/,'');if(!cf){toast('Add the fuse holders first');return;}if(!/ and fuse$/i.test(cf))sc.replaced=cf+' and fuse';rp.sel=[];rpSync();rpRender();return;}
+  if(d.rpslash){var ii=$('rp-img'),vv=String(rp.img||'');if(vv&&vv.slice(-1)!=='/'){vv+='/';rp.img=vv;}if(ii){ii.value=vv;ii.focus();try{ii.setSelectionRange(vv.length,vv.length);}catch(_){}}return;}
   if(d.rpundo&&rp.k==='obs'){var T2=RPK.obs.get(sc).trim(),done2=false;(rpSents()).forEach(function(x){if(!done2&&x&&T2.slice(-x.length)===x){var hd=T2.slice(0,T2.length-x.length).trim();if(!/^[a-z]/.test(x))hd=hd.replace(/((?:ST\.\s*)?\d+(?:,\d+)*\s*)$/,'').trim();T2=hd;done2=true;}});if(!done2)T2=T2.replace(/(?:^|\s*&\s*|\s+)(?:\d+(?:,\d+)*\s+)?(?:FHN|FHP)$/,'').trim();pxSet(sc,'obs',T2);rp.sel=[];rpSync();rpRender();return;}
   if(d.rpundo&&rp.k==='rem'){pxUndo(sc,rp.k);rp.sel=[];rpSync();rpRender();return;}
   if(d.rpundo){var t0=String(sc.replaced||'').replace(/[,\s]+$/,'');if(/ and fuse$/i.test(t0)){sc.replaced=t0.replace(/ and fuse$/i,'');rp.sel=[];rpSync();rpRender();return;}var ix=t0.lastIndexOf(', ');sc.replaced=ix>=0?t0.slice(0,ix):'';rp.sel=[];rpSync();rpRender();return;}
@@ -1646,7 +1648,7 @@ rpEl.addEventListener('click',function(e){
 });
 pane.addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b)return;var s=cur(),d=b.dataset;
-  if(d.rpopen!==undefined){rp.i=+d.rpopen;rp.k=d.rpk||'rep';rp.amp=false;rp.img='';rp.sel=[];if(rp.k==='rep'){var oc=S.scbs[rp.i],mm=/\s*\((\d+)\)$/.exec(String(oc.replaced||'').trim());if(mm){rp.img=mm[1];oc.replaced=String(oc.replaced).trim().replace(/\s*\(\d+\)$/,'');}}rpRender();rpEl.hidden=false;return;}
+  if(d.rpopen!==undefined){rp.i=+d.rpopen;rp.k=d.rpk||'rep';rp.amp=false;rp.img='';rp.sel=[];if(rp.k==='rep'){var oc=S.scbs[rp.i],mm=/\s*\(([\d\/]+)\)$/.exec(String(oc.replaced||'').trim());if(mm){rp.img=mm[1];oc.replaced=String(oc.replaced).trim().replace(/\s*\([\d\/]+\)$/,'');}}rpRender();rpEl.hidden=false;return;}
   if(d.now!==undefined){var ni=+d.now,nr=S.scbs[ni];var oldT=nr[d.nf];nr[d.nf]=nowHM();pairTime(nr,d.nf,oldT,nr[d.nf]);var ne=document.querySelector('#mr-'+ni+' [data-jf="'+d.nf+'"]');if(ne)ne.value=nr[d.nf];ui.last=ni;save();updMainRow(ni);chrome();return;}
   if(d.copyt!==undefined){var ci=+d.copyt,src0=S.scbs[ci];if(!src0.start&&!src0.end){toast('Enter this row\'s time first');return;}var tw=twins(ci);tw.forEach(function(k){var o=S.scbs[k];o.start=src0.start;o.end=src0.end;['start','end'].forEach(function(f){var e2=document.querySelector('#mr-'+k+' [data-jf="'+f+'"]');if(e2)e2.value=o[f];});updMainRow(k);});save();chrome();toast('Time copied to '+tw.length+' matching SCB'+(tw.length===1?'':'s'));return;}
   if(d.nextun!==undefined){nextUnfinished();return;}
