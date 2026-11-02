@@ -530,8 +530,8 @@ function $(id){return document.getElementById(id);}
 var RCOMP=[
  {c:'FHN',t:'fhn',re:'fhn',m:{'Fuse holder':1}},{c:'FHP',t:'fhp',re:'fhp',m:{'Fuse holder':1}},
  {c:'FN',t:'fn',re:'fn',m:{'Fuse':1}},{c:'FP',t:'fp',re:'fp',m:{'Fuse':1}},
- {c:'42 LCP',t:'42 cm lcp',re:'42\\s*(?:cm\\s*)?lcp',m:{'42 CM L.C.P':1}},{c:'32 LCP',t:'32 cm lcp',re:'32\\s*(?:cm\\s*)?lcp',m:{'32 CM L.C.P':1}},
- {c:'42 LCN',t:'42 cm lcn',re:'42\\s*(?:cm\\s*)?lcn',m:{'42 CM L.C.N':1}},{c:'32 LCN',t:'32 cm lcn',re:'32\\s*(?:cm\\s*)?lcn',m:{'32 CM L.C.N':1}},
+ {c:'42CM L.C.P',t:'42CM L.C.P',re:'42\\s*(?:cm\\s*)?l\\.?c\\.?p',m:{'42 CM L.C.P':1}},{c:'32CM L.C.P',t:'32CM L.C.P',re:'32\\s*(?:cm\\s*)?l\\.?c\\.?p',m:{'32 CM L.C.P':1}},
+ {c:'42CM L.C.N',t:'42CM L.C.N',re:'42\\s*(?:cm\\s*)?l\\.?c\\.?n',m:{'42 CM L.C.N':1}},{c:'32CM L.C.N',t:'32CM L.C.N',re:'32\\s*(?:cm\\s*)?l\\.?c\\.?n',m:{'32 CM L.C.N':1}},
  {c:'MC4 male',t:'mc4 male',re:'mc4\\s*male',m:{'MC4 male':1}},{c:'MC4 female',t:'mc4 female',re:'mc4\\s*female',m:{'MC4 female':1}},
  {c:'Door hinge',t:'door hinge',re:'door\\s*hinge',m:{'Door hinge':1}},{c:'DC-DC converter',t:'dc-dc converter',re:'dc-?dc(?:\\s*converter)?',m:{'DC-DC converter':1}},
  {c:'Fuse',t:'fuse',re:'fuse(?!\\s*holder)',m:{'Fuse':1},wh:1,nobtn:1},
@@ -1476,8 +1476,7 @@ function rpRender(){
   var sc=S.scbs[rp.i];if(!sc){rpEl.hidden=true;return;}
   var n=Math.max(1,Math.min(MAXSTR,parseInt(sc.strings,10)||10)),g='',c='';
   for(var k=1;k<=n;k++)g+='<button type="button" class="rb'+(rp.sel.indexOf(k)>=0?' on':'')+'" data-rpn="'+k+'">'+k+'</button>';
-  RCOMP.forEach(function(x,j){if(x.nobtn)return;c+='<button type="button" class="rb cp" data-rpc="'+j+'">'+esc(x.c)+'</button>';});
-  c+='<button type="button" class="rb cp" data-rpfuse="1">+ Fuse too</button>';
+  RCOMP.forEach(function(x,j){if(x.nobtn)return;c+='<button type="button" class="rb cp" data-rpc="'+j+'">'+esc(x.c)+'</button>';if(x.t==='fhp')c+='<button type="button" class="rb cp" data-rpfuse="1">+ Fuse too</button>';});
   rpBox.innerHTML='<h3>REPLACED COMPONENTS \u00b7 '+esc(equip(sc))+'</h3><div class="rps">'+n+' strings</div>'+
     '<div class="rpo">'+(sc.replaced?esc(sc.replaced):'<span style="color:var(--muted,#6b7280)">Nothing added yet</span>')+'</div>'+
     '<div class="rpl">1 \u00b7 TAP THE STRINGS</div><div class="rpg">'+g+'</div>'+
