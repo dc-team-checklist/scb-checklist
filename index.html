@@ -342,7 +342,8 @@ table.mt .obsc{position:relative;display:flex;align-items:center;gap:0;white-spa
 table.mt .obsc input.ci{flex:none;width:auto;min-width:0;min-height:0;height:auto;font-family:inherit;font-size:.9375rem;line-height:1.25;padding:2px 4px 2px 2px;box-shadow:none;align-self:center}
 table.mt .obsc input.ci:focus{position:static;z-index:auto;box-shadow:none;background:var(--accent-soft);border-radius:4px}
 table.mt .obsc input.ci:placeholder-shown{width:5ch;padding-right:2px}
-table.mt .obsc input.ci:placeholder-shown:focus{width:11ch}
+table.mt .obsc input.ci:placeholder-shown:focus{width:9rem}
+table.mt .obsc input.ci:focus{min-height:42px;font-size:1rem;padding:6px 8px;border:2px solid var(--accent)!important}
 table.mt .obsc.hasph input.ci:placeholder-shown:not(:focus){width:14px;padding:0}
 table.mt .obsc.hasph input.ci:placeholder-shown:not(:focus)::placeholder{color:transparent}
 table.mt .obsc input.ci::placeholder{color:var(--muted,#8a97a6);opacity:.6}
@@ -378,6 +379,12 @@ table.mt td.repc textarea.ci{padding-right:72px}
 #rp .rb.cp{background:var(--accent-soft,#eef3fa)}
 #rp .rb.go{background:#1b7f3b;color:#fff;border-color:#1b7f3b;min-width:140px}
 #rp .rpsel{margin-top:10px;font-size:.9375rem}#rp .rpsel b{font-size:1.1875rem;border-bottom:2px solid var(--accent);padding:0 6px}
+table.mt td.pc{position:relative;padding-right:64px}
+table.mt td:nth-child(12),table.mt td:nth-child(13),table.mt th:nth-child(12),table.mt th:nth-child(13){width:400px;min-width:400px;max-width:400px}
+#rp .rpg.rpcol{flex-direction:column;flex-wrap:nowrap;gap:6px}
+#rp .rb.rbs{text-align:left;justify-content:flex-start;height:auto;min-height:48px;padding:8px 14px;white-space:normal;font-weight:600;font-size:.9375rem}
+table.mt td.pc{position:relative;padding-right:0}
+table.mt td.pc textarea.ci{width:100%!important;min-width:0;min-height:50px;height:50px;resize:none;overflow-y:auto;font-size:.9375rem;line-height:1.25;padding:4px 72px 4px 8px;box-sizing:border-box}
 </style>
 
 <div class="app">
@@ -528,24 +535,25 @@ function save(){try{autoMats();}catch(e){}clearTimeout(saveT);saveT=setTimeout(f
 /* ---------- helpers ---------- */
 function $(id){return document.getElementById(id);}
 var RCOMP=[
- {c:'FHN',t:'FHN',re:'fhn',m:{'Fuse holder':1}},{c:'FHP',t:'FHP',re:'fhp',m:{'Fuse holder':1}},
- {c:'FN',t:'FN',re:'fn',m:{'Fuse':1}},{c:'FP',t:'FP',re:'fp',m:{'Fuse':1}},
+ {c:'FHN',t:'FHN',re:'fhn',g:1,m:{'Fuse holder':1}},{c:'FHP',t:'FHP',re:'fhp',g:1,m:{'Fuse holder':1}},
+ {c:'FN',t:'FN',re:'fn',g:1,m:{'Fuse':1}},{c:'FP',t:'FP',re:'fp',g:1,m:{'Fuse':1}},
  {c:'42CM L.C.P',t:'42CM L.C.P',re:'42\\s*(?:cm\\s*)?l\\.?c\\.?p',m:{'42 CM L.C.P':1}},{c:'32CM L.C.P',t:'32CM L.C.P',re:'32\\s*(?:cm\\s*)?l\\.?c\\.?p',m:{'32 CM L.C.P':1}},
  {c:'42CM L.C.N',t:'42CM L.C.N',re:'42\\s*(?:cm\\s*)?l\\.?c\\.?n',m:{'42 CM L.C.N':1}},{c:'32CM L.C.N',t:'32CM L.C.N',re:'32\\s*(?:cm\\s*)?l\\.?c\\.?n',m:{'32 CM L.C.N':1}},
- {c:'MC4 male',t:'mc4 male',re:'mc4\\s*male',m:{'MC4 male':1}},{c:'MC4 female',t:'mc4 female',re:'mc4\\s*female',m:{'MC4 female':1}},
- {c:'Door hinge',t:'door hinge',re:'door\\s*hinge',m:{'Door hinge':1}},{c:'DC-DC converter',t:'dc-dc converter',re:'dc-?dc(?:\\s*converter)?',m:{'DC-DC converter':1}},
+ {c:'MC4 male',t:'MC4 male',re:'mc4\\s*male',m:{'MC4 male':1}},{c:'MC4 female',t:'MC4 female',re:'mc4\\s*female',m:{'MC4 female':1}},
+ {c:'Door hinge',t:'door hinge',re:'door\\s*hinge',ns:1,qty:1,m:{'Door hinge':1}},{c:'DC-DC converter',t:'dc-dc converter',re:'dc-?dc(?:\\s*converter)?',ns:1,m:{'DC-DC converter':1}},
  {c:'Fuse',t:'fuse',re:'fuse(?!\\s*holder)',m:{'Fuse':1},wh:1,nobtn:1},
  {c:'FH bus link',t:'fh bus link',re:'fh\\s*bus\\s*link',m:{'FH bus link':1},pair:1},
  {c:'16 sq mm cable',t:'16 sq mm cable',re:'16\\s*sq\\.?\\s*mm(?:\\s*(?:link\\s*)?cable)?',m:{'16 sq mm link cable +ve':1,'16 sq mm link cable -ve':1},pair:1}
 ];
 var RCRE=RCOMP.map(function(x){return '\\b('+x.re+')(?![a-z0-9])';}).join('|')+'|(\\d+)';
+function comp0g(i){return !!RCOMP[i].g;}
 function replTotals(text,tot){
-  var low=String(text||'').toLowerCase(),re=new RegExp(RCRE,'g'),m,pend=0,hold=0,N=RCOMP.length;
+  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=0,hold=0,lastN=0,lastV=1,N=RCOMP.length;
   while((m=re.exec(low))){
-    if(m[N+1]!==undefined){pend++;continue;}
+    if(m[N+1]!==undefined){pend++;lastV=parseInt(m[N+1],10)||1;continue;}
     var gi=-1;for(var g=1;g<=N;g++){if(m[g]!==undefined){gi=g-1;break;}}
     if(gi<0)continue;
-    var comp=RCOMP[gi],n=pend>0?pend:1;if(comp.pair)n=Math.ceil(n/2);if(comp.wh){n=hold>0?hold:n;hold=0;}else if(comp.m['Fuse holder'])hold+=n;
+    var comp=RCOMP[gi],n=comp.qty?(pend>0?lastV:1):comp.ns?1:pend>0?pend:(comp0g(gi)&&lastN>0?lastN:1);if(RCOMP[gi].g&&pend>0)lastN=pend;if(comp.pair)n=Math.ceil(n/2);if(comp.wh){n=hold>0?hold:n;hold=0;}else if(comp.m['Fuse holder'])hold+=n;
     Object.keys(comp.m).forEach(function(k){tot[k]=(tot[k]||0)+n*comp.m[k];});
     pend=0;
   }
@@ -553,11 +561,16 @@ function replTotals(text,tot){
 function autoTotals(){var tot={};S.scbs.forEach(function(x){if(x.replaced)replTotals(x.replaced,tot);});return tot;}
 function autoMats(){
   if(!S.mats)return false;
-  if(!S.mats._ov){S.mats._ov={};MATERIALS.forEach(function(m){if((S.mats[m]||0)>0)S.mats._ov[m]=1;});}
   var tot=autoTotals(),ch=false;
-  MATERIALS.forEach(function(m){if(S.mats._ov[m])return;var v=tot[m]||0;if((S.mats[m]||0)!==v){S.mats[m]=v;ch=true;}});
+  delete S.mats._adj;delete S.mats._ov;
+  if(!S.mats._last){var l0={};MATERIALS.forEach(function(m){if((S.mats[m]||0)>0)l0[m]=tot[m]||0;});S.mats._last=l0;}
+  var last=S.mats._last;
+  MATERIALS.forEach(function(m){var a=tot[m]||0,b=last[m]||0;if(a!==b){S.mats[m]=a;ch=true;}});
+  if(ch||JSON.stringify(last)!==JSON.stringify(tot))S.mats._last=tot;
   return ch;
 }
+function setTotal(m,val){S.mats[m]=val;}
+function autoBadge(m){var a=autoTotals()[m]||0;if(a<=0||(S.mats[m]||0)!==a)return '';return '<span class="autob">auto</span>';}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function fmtDate(d){if(!d)return '—';var p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;}
 function nowHM(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
@@ -576,6 +589,63 @@ function outliers(s){
   if(v.length>=3){var mv=median(v);for(i=0;i<n;i++){var x=num(s.voc[i]);if(x!==null&&Math.abs(x-mv)>mv*0.03)res.voc[i]=1;}}
   if(c.length>=3){var mc=median(c);for(i=0;i<n;i++){var y=num(s.imp[i]);if(y!==null&&Math.abs(y-mc)>mc*0.15)res.imp[i]=1;}}
   return res;
+}
+function allokUndoable(s){
+  var u=ui.allokU&&ui.allokU[s.id||s.scb+'|'+s.inv+'|'+s.block];
+  if(u&&u.some(function(id){return s.checks[id]==='ok';}))return true;
+  return ALL.every(function(id){return s.checks[id]==='ok';});
+}
+
+/* Proper sentences for the SCB checklist, built from the Main sheet text */
+function replEntries(text){
+  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=[],hold=[],last=[],N=RCOMP.length,out=[];
+  while((m=re.exec(low))){
+    if(m[N+1]!==undefined){pend.push(m[N+1]);continue;}
+    var gi=-1;for(var g=1;g<=N;g++){if(m[g]!==undefined){gi=g-1;break;}}
+    if(gi<0)continue;
+    var comp=RCOMP[gi],nums;
+    if(comp.ns)nums=[];
+    else if(comp.wh){nums=hold.filter(function(v,ix,ar){return ar.indexOf(v)===ix;}).sort(function(a,b){return a-b;});hold=[];}
+    else if(pend.length)nums=pend.slice();
+    else if(comp.g&&last.length)nums=last.slice();
+    else nums=[];
+    if(comp.g&&pend.length)last=pend.slice();
+    if(comp.m['Fuse holder'])hold=hold.concat(nums);
+    out.push({c:comp.c,nums:nums,q:comp.qty?(pend.length?(parseInt(pend[pend.length-1],10)||1):1):1});pend=[];
+  }
+  return out;
+}
+function replSentences(text){
+  var items=replEntries(text),out=[],pre='Checked and Found that ';
+  function st(n){return n.length?'ST-'+n.join(',')+' ':'';}
+  function wv(n){return n.length>1?'were':'was';}
+  var link={'42CM L.C.P':'P-MC4 link Cable(42CM)','32CM L.C.P':'P-MC4 link Cable(32CM)','42CM L.C.N':'N-MC4 link Cable(42CM)','32CM L.C.N':'N-MC4 link Cable(32CM)','MC4 male':'Male MC4 connector','MC4 female':'Female MC4 connector','FH bus link':'FH bus link','16 sq mm cable':'16 sq mm link cable'};
+  var groups=[];
+  items.forEach(function(it){
+    if(link[it.c]){var key=it.nums.join(',');var gx=null;groups.forEach(function(q){if(!gx&&q.key===key&&q.key!==''&&q.open)gx=q;});
+      if(gx){gx.names.push(link[it.c]);}else{groups.push({key:key,names:[link[it.c]],nums:it.nums,open:true,at:out.length});out.push(null);}}
+    else if(it.c==='FHN'||it.c==='FHP')out.push(pre+st(it.nums)+it.c+' with burn marks & '+(it.nums.length>1||!it.nums.length?'were':'was')+' replaced.');
+    else if(it.c==='FN'||it.c==='FP')out.push('Checked and Found '+st(it.nums)+it.c+' '+wv(it.nums)+' faulty & replaced.');
+    else if(it.c==='Door hinge')out.push('Checked and Found '+(it.q>1?it.q+' door hinges were':'1 door hinge was')+' damaged & '+(it.q>1?'were':'was')+' replaced.');
+    else if(it.c==='DC-DC converter')out.push('Checked and found that the DC-DC converter was faulty and replaced.');
+    else if(it.c==='Fuse')out.push('Checked and Found that '+(it.nums.length?'fuse of '+st(it.nums).trim()+' ':'fuse ')+wv(it.nums)+' faulty & replaced.');
+  });
+  groups.forEach(function(q){out[q.at]=pre+st(q.nums)+q.names.join(' & ')+' '+wv(q.nums)+' damaged & replaced.';});
+  return out.filter(Boolean);
+}
+function remText(s){return [s.remNo,s.remarks].filter(Boolean).join(' ').trim();}
+function obsAll(s){var a=obsSentences(s),r=remText(s);if(r)a.push(r);return a;}
+function obsSentences(s){
+  var t=obsText(s),out=[],re=/((?:(?:ST\.?\s*-?\s*)?[\d,]*\s*FH[NP]\s*(?:&\s*)?)+)re\s*tightness\s*done\.?/gi,pos=0,m;
+  function rest(x){x=x.replace(/\s+/g,' ').trim();if(x)out.push(x);}
+  while((m=re.exec(t))){
+    rest(t.slice(pos,m.index));pos=m.index+m[0].length;
+    var parts=[],tot=0,pr=/(?:ST\.?\s*-?\s*)?([\d,]*)\s*(FH[NP])/gi,q;
+    while((q=pr.exec(m[1]))){var nm=q[1].replace(/^,|,$/g,'');tot+=nm?nm.split(',').length:2;parts.push((nm?'ST-'+nm+' ':'')+q[2].toUpperCase());}
+    out.push('Checked and Found that '+parts.join(' & ')+' '+((parts.length>1||tot!==1)?'were':'was')+' over heating & re tightened.');
+  }
+  rest(t.slice(pos));
+  return out;
 }
 function stat(s){
   var ans=0,nok=0;
@@ -640,10 +710,10 @@ function renderScb(){
   var jb=S.job,tn=(jb.techs||[]).filter(Boolean);
   h+='<section class="card jinfo" aria-label="Job details for this checklist"><div><span>Date</span><b class="mono">'+fmtDate(jb.date)+'</b></div><div><span>PTW no.</span><b class="mono">'+esc(jb.ptw||'—')+'</b></div><div><span>Technicians</span><b>'+(tn.length?tn.map(esc).join('<br>'):'—')+'</b></div><div><span>PM supervisor</span><b>'+esc(jb.sup||'—')+'</b></div></section>';
 
-  h+='<section class="card"><div class="scbhead"><h2 style="margin:0">Checklist</h2><span class="tag mono" id="chk-count">'+st.ans+' / '+ALL.length+' answered'+(st.nok?' · '+st.nok+' not OK':'')+'</span></div>'+
+  h+='<section class="card"><div class="scbhead"><h2 style="margin:0">Checklist</h2><span class="tag mono" id="chk-count">'+st.ans+' / '+ALL.length+' answered'+(st.nok?' · '+st.nok+' not OK':'')+'</span><button type="button" class="btn sm" data-allrest="1">'+(allokUndoable(s)?'Undo all OK':'All OK')+'</button></div>'+
     '<p class="hint">1 · Depending upon the ambient conditions, monthly/quarterly inspections. Tap a selected button again to clear it.</p>';
   SECTIONS.forEach(function(sec){
-    h+='<div class="secthead"><h3><span>'+sec.id+'</span>'+sec.title+'</h3><button type="button" class="btn sm" data-allok="'+sec.id+'">'+(sec.items.every(function(it){return s.checks[it[0]]==='ok';})?'Undo all OK':'All OK')+'</button></div>';
+    h+='<div class="secthead"><h3><span>'+sec.id+'</span>'+sec.title+'</h3></div>';
     sec.items.forEach(function(it){
       var v=s.checks[it[0]]||'';
       h+='<div class="chk '+v+'"><span class="n">'+it[0]+'</span><p>'+esc(it[1])+(it[0]==='1.5.1'&&s.comm?'<br><span class="sub">Main sheet comm. status: <b>'+esc(s.comm)+'</b></span>':'')+'</p>'+
@@ -666,8 +736,8 @@ function renderScb(){
     '</section>';
 
   h+='<section class="card"><h2>Replaced components &amp; observations</h2><div class="fields" style="grid-template-columns:1fr">'+
-    '<div class="f">Replaced components<div class="roval">'+(s.replaced?esc(s.replaced):'—')+'</div></div>'+
-    '<div class="f">Observations<div class="roval">'+(obsText(s)?esc(obsText(s)):'—')+'</div></div></div>'+
+    '<div class="f">Replaced components<div class="roval">'+(replSentences(s.replaced).length?replSentences(s.replaced).map(function(x){return '<p style="margin:0 0 6px">'+esc(x)+'</p>';}).join(''):(s.replaced?esc(s.replaced):'—'))+'</div></div>'+
+    '<div class="f">Observations<div class="roval">'+(obsAll(s).length?obsAll(s).map(function(x){return '<p style="margin:0 0 6px">'+esc(x)+'</p>';}).join(''):'—')+'</div></div></div>'+
     '<p class="hint">These come from the Main sheet. Change them there.</p><div class="navrow" style="justify-content:flex-start"><button type="button" class="btn" data-go="main">Go to Main sheet</button></div></section>';
 
   var ij=S.job.inst||{};
@@ -718,9 +788,9 @@ function matsInner(){
   rows.forEach(function(m,r){
     var k=MATERIALS.indexOf(m),o='<option value="">Choose item\u2026</option>';
     MATERIALS.forEach(function(x){if(x===m||rows.indexOf(x)<0)o+='<option'+(x===m?' selected':'')+'>'+esc(x)+'</option>';});
-    var isAuto=k>=0&&!(S.mats._ov&&S.mats._ov[m])&&(S.mats[m]||0)>0;
+    var isAuto=k>=0;
     h+='<div class="mat"><select class="in" data-matsel="'+r+'" aria-label="Item '+(r+1)+'">'+o+'</select>'+
-      '<span class="mq">'+(isAuto?'<span class="autob">auto</span>':'')+'<input class="in mono matin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" autocomplete="off"'+(k<0?' disabled':' data-matv="'+k+'"')+' value="'+(k>=0&&(S.mats[m]||0)?S.mats[m]:'')+'" placeholder="0" aria-label="Quantity of '+esc(m||'item')+'"></span>'+
+      '<span class="mq">'+(isAuto?autoBadge(m):'')+'<input class="in mono matin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" autocomplete="off"'+(k<0?' disabled':' data-matv="'+k+'"')+' value="'+(k>=0&&(S.mats[m]||0)?S.mats[m]:'')+'" placeholder="0" aria-label="Quantity of '+esc(m||'item')+'"></span>'+
       '<button type="button" class="btn matx" data-matdel="'+r+'" aria-label="Remove item '+(r+1)+'">\u00d7</button></div>';
   });
   var left=MATERIALS.length-rows.length,hasBlank=rows.indexOf('')>=0;
@@ -806,7 +876,7 @@ function mrow(s,i){
     '<td class="c mono ro">'+esc(s.row)+'</td><td class="c mono ro">'+fmtDate(s.planned)+'</td><td class="c mono ro">'+esc(s.strings)+'</td>'+
     '<td class="c commc'+(c==='NOT OK'?' cnok':'')+'">'+esc(c)+'</td>'+
     tcell(s,i,'start')+tcell(s,i,'end')+f('irBefore','c mono','','inputmode="numeric" ')+f('irAfter','c mono'+(s.irAuto?' auto':''),'','inputmode="numeric" ')+
-    '<td class="repc"><textarea class="ci" rows="2" data-ji="'+i+'" data-jf="replaced" aria-label="replaced row '+(i+1)+'">'+esc(s.replaced)+'</textarea><button type="button" class="repadd" data-rpopen="'+i+'" aria-label="Add replaced components, row '+(i+1)+'">+ Add</button></td><td><div class="obsc'+(s.obsPh?' hasph':'')+'"><input class="ci mono" data-ji="'+i+'" data-jf="obs" placeholder="#" value="'+esc(s.obs)+'" aria-label="Observation string numbers row '+(i+1)+'">'+phBox(S.names.obs,s.obsPh||'','data-ji="'+i+'" data-jf="obsPh"','Observation sentence row '+(i+1))+'</div></td><td><div class="obsc'+(s.remarks?' hasph':'')+'"><input class="ci mono" data-ji="'+i+'" data-jf="remNo" placeholder="#" value="'+esc(s.remNo||'')+'" aria-label="Remark string numbers row '+(i+1)+'">'+phBox(S.names.rem,s.remarks||'','data-ji="'+i+'" data-jf="remarks"','Remarks row '+(i+1))+'</div></td>'+
+    '<td class="repc"><textarea class="ci" rows="2" data-ji="'+i+'" data-jf="replaced" aria-label="replaced row '+(i+1)+'">'+esc(s.replaced)+'</textarea><button type="button" class="repadd" data-rpopen="'+i+'" aria-label="Add replaced components, row '+(i+1)+'">+ Add</button></td><td class="pc"><textarea class="ci" rows="2" data-ji="'+i+'" data-jf="obsx" aria-label="Observations row '+(i+1)+'">'+esc(obsText(s))+'</textarea><button type="button" class="repadd" data-rpopen="'+i+'" data-rpk="obs" aria-label="Add observations, row '+(i+1)+'">+ Add</button></td><td class="pc"><textarea class="ci" rows="2" data-ji="'+i+'" data-jf="remx" aria-label="Remarks row '+(i+1)+'">'+esc([s.remNo,s.remarks].filter(Boolean).join(' '))+'</textarea><button type="button" class="repadd" data-rpopen="'+i+'" data-rpk="rem" aria-label="Add remarks, row '+(i+1)+'">+ Add</button></td>'+
     '<td class="c" id="ms-'+i+'">'+stCell(s)+'</td></tr>';
 }
 function updMainRow(i){
@@ -914,6 +984,12 @@ function genPreviewHtml(){
   var names=r.items.slice(0,6).map(function(s){return equip(s);}).join(', ');
   return '<b>'+r.items.length+' location'+(r.items.length>1?'s':'')+'</b> will be created: <span class="mono">'+esc(names)+(r.items.length>6?' …':'')+'</span>'+(r.dup?' · '+r.dup+' already in the list, skipped':'');
 }
+function fastCard(){
+  return '<section class="card"><h2>Fast entry on this device</h2><p class="hint" style="margin:-6px 0 12px">Saves a tap per reading on the SCB page. This setting stays on this device only.</p><div class="fields">'+
+   '<label class="f">Voc: move to the next box after this many digits (0 = off)<input class="in mono" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-fast="voc" value="'+FAST.voc+'"></label>'+
+   '<label class="chkl" style="align-self:end"><input type="checkbox" data-fast="imp"'+(FAST.imp?' checked':'')+'> Imp: type 3 digits only (124 becomes 12.4) and move on</label>'+
+   '<label class="chkl"><input type="checkbox" data-fast="pair"'+(FAST.pair?' checked':'')+'> Copy start and end time to the paired SCB (same block and SCB number, inverters 1+2 or 3+4)</label></div></section>';
+}
 function instEdit(j){
   var h='';
   h+='<section class="card"><h2>Testing instruments used</h2><div class="fields">';
@@ -939,6 +1015,7 @@ function renderJob(){
   if(!ui.unlocked){h+=lockHtml()+'</div>';setPane(h);return;}
   h+='<div class="lockbar"><span class="hint">PM plan is unlocked.</span><button type="button" class="btn" data-lock="1">Lock now</button></div>';
   h+=namesHtml();
+  h+=fastCard();
   h+=pinHtml();
   if(ui.imp.replace===null)ui.imp.replace=!S.scbs.some(function(s){return stat(s).state!=='new';});
   h+='<section class="card"><h2>Paste the day\'s list</h2><p class="hint" style="margin:-6px 0 12px">Copy the rows from Excel and paste them below. Columns: EQUIPMENT, Row, Planned date, String count, Comm. status. Every line creates a location on the Main sheet and its own checklist.</p>'+
@@ -1079,9 +1156,9 @@ function buildScbSheet(wb,s,src,name,logoId){
     ws.getRow(a).height=18;ws.getRow(b).height=28;ws.getRow(c).height=28;r+=3;
   }
   xmerge(ws,'B'+r+':Q'+r,'',{fill:G});ws.getRow(r).height=8;r++;
-  [['Replaced components: ',s.replaced||''],['Observations: ',obsText(s)],['Remarks: ',[s.remNo,s.remarks].filter(Boolean).join(' ')]].forEach(function(x){
+  [['Replaced components: ',(function(){var a=replSentences(s.replaced);return a.length?a.join('\n'):(s.replaced||'');})()],['Observations: ',obsAll(s).join('\n')]].forEach(function(x){
     var cell=xmerge(ws,'B'+r+':Q'+r,{richText:[{text:x[0],font:{name:'Arial',size:9,bold:true}},{text:x[1],font:{name:'Arial',size:10}}]},{h:'left'});
-    ws.getRow(r).height=Math.max(24,Math.ceil((x[0].length+x[1].length)/120)*13+8);r++;});
+    ws.getRow(r).height=Math.max(24,(x[0]+x[1]).split('\n').reduce(function(a,l,ix){return a+Math.max(1,Math.ceil((l.length+(ix===0?0:0))/115));},0)*13+8);r++;});
   var ins=j.inst||{};
   xmerge(ws,'B'+r+':M'+r,'TESTING INSTRUMENTS USED',{b:1,sz:9,fill:G});xmerge(ws,'N'+r+':P'+r,'SERIAL NUMBER',{b:1,sz:9,fill:G});xput(ws,'Q'+r,'CALIBRATION DATE',{b:1,sz:9,fill:G});ws.getRow(r).height=18;r++;
   [['Clamp meter','clamp'],['IR camera','ir'],['Multimeter','mm'],['Proving unit','pu']].forEach(function(x){
@@ -1175,9 +1252,10 @@ function buildPdf(src){
   }
   newPage();
   src.scbs.forEach(function(sc,i){
-    var obs=pdfSafe([obsText(sc),[sc.remNo,sc.remarks].filter(Boolean).join(' ')].filter(Boolean).join(' '));
+    var obs=pdfSafe(obsText(sc)),remP=pdfSafe(remText(sc));
     var cells=[equip(sc),sc.row,dMon(sc.planned),sc.strings,String(comm(sc)||'').toUpperCase(),sc.start,sc.end,sc.irBefore,sc.irAfter,sc.replaced,obs].map(pdfSafe);
     var wr=cells.map(function(c,k){return wrapTxt(c,SZ,COLS[k][1]-6);});
+    if(remP){var ob=obs?wrapTxt(obs,SZ,COLS[10][1]-6):[];wr[10]=ob.concat(wrapTxt(remP,SZ,COLS[10][1]-6));}
     var n=Math.max.apply(null,wr.map(function(a){return a.length;})),h=Math.max(36,n*LH+12);
     if(y+h>562){newPage();}
     var s='0 G 0.6 w ';
@@ -1225,7 +1303,7 @@ function exportXlsx(){
   var src=expSrc();
   if(!src.scbs.length){toast('Nothing to export');return;}
   if(!window.ExcelJS){toast('The Excel library did not load. Check the connection and reload.');return;}
-  var name='SCB_PM_Main_sheet-'+fileLabel(src)+'.xlsx';
+  var name='SCB_PM_'+fileLabel(src)+'.xlsx';
   toast('Preparing file…');
   buildWorkbook(src).xlsx.writeBuffer().then(function(buf){return deliver(name,buf,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}).catch(function(){toast('Could not build the file');});
 }
@@ -1456,6 +1534,24 @@ function syAct(a){
 
 /* ---------- events ---------- */
 var pane=$('pane');
+var FAST=(function(){var o={voc:3,imp:1,pair:1};try{var r=JSON.parse(localStorage.getItem('scb-fast'));if(r){if(typeof r.voc==='number')o.voc=r.voc;if(r.imp===0||r.imp===1)o.imp=r.imp;if(r.pair===0||r.pair===1)o.pair=r.pair;}}catch(e){}return o;})();
+function pairKey(x){var n=parseInt(x.inv,10);if(isNaN(n)||n<1)return null;return String(x.block)+'|'+String(x.scb)+'|'+Math.ceil(n/2);}
+function pairTime(src,f,oldV,newV){
+  var out=[];if(!FAST.pair||(f!=='start'&&f!=='end'))return out;var key=pairKey(src);if(!key)return out;
+  S.scbs.forEach(function(p,pi){if(p===src||pairKey(p)!==key)return;if(!p[f]||p[f]===oldV){p[f]=newV;out.push(pi);}});
+  out.forEach(function(pi){var e=document.querySelector('#mr-'+pi+' [data-jf="'+f+'"]');if(e)e.value=newV;if(ui.view==='main')updMainRow(pi);});
+  return out;
+}
+function fastSave(){try{localStorage.setItem('scb-fast',JSON.stringify(FAST));}catch(e){}}
+function fastJump(t,k,s){
+  var v=String(t.value),go=false;
+  if(k==='voc'){var dg=v.replace(/\D/g,'').length;if(FAST.voc>0&&v.indexOf('.')<0&&dg>=FAST.voc)go=true;}
+  else if(FAST.imp){
+    if(v.indexOf('.')<0&&/^\d{3}$/.test(v)){v=v.slice(0,2)+'.'+v.slice(2);t.value=v;s.imp[+t.getAttribute('data-imp')]=v;go=true;}
+    else if(/^\d+\.\d$/.test(v)&&v.length>=3)go=true;
+  }
+  if(go)setTimeout(function(){nextStr(t);},0);
+}
 function viKind(el){return el&&el.getAttribute?(el.hasAttribute('data-voc')?'voc':(el.hasAttribute('data-imp')?'imp':'')):'';}
 function nextStr(el){
   var k=viKind(el);if(!k)return;var i=+el.getAttribute('data-'+k),n=document.querySelector('[data-'+k+'="'+(i+1)+'"]');
@@ -1469,48 +1565,103 @@ if(window.visualViewport){visualViewport.addEventListener('resize',placeNb);visu
 nb.addEventListener('pointerdown',function(e){e.preventDefault();});
 nb.addEventListener('click',function(){nextStr(document.activeElement);});
 pane.addEventListener('focusin',function(e){if(e.target.hasAttribute&&e.target.hasAttribute('data-matv')){try{e.target.select();}catch(x){}}var k=viKind(e.target);if(k){nb.textContent=(k==='voc'?'Next Voc':'Next Imp')+' \u25B8';placeNb();nb.hidden=false;}});
+pane.addEventListener('focusout',function(e){if(e.target.classList&&e.target.classList.contains('matin')){setTimeout(function(){var mb=$('matbox');if(mb&&!mb.contains(document.activeElement))matsRefresh();},120);}});
 pane.addEventListener('focusout',function(){setTimeout(function(){if(!viKind(document.activeElement))nb.hidden=true;},150);});
 pane.addEventListener('click',function(e){var td=e.target.closest('table.mt td');if(!td||e.target.closest('input,select,button'))return;var f=td.querySelector('.ci:not([readonly])');if(f)f.focus();});
-var rpEl=$('rp'),rpBox=rpEl.querySelector('.rpc'),rp={i:-1,sel:[]};
+var rpEl=$('rp'),rpBox=rpEl.querySelector('.rpc'),rp={i:-1,sel:[],k:'rep',amp:false,img:''};
+var RPK={rep:{t:'REPLACED COMPONENTS',get:function(c){return c.replaced||'';}},obs:{t:'OBSERVATIONS',get:function(c){return obsText(c);},list:function(){return S.names.obs;}},rem:{t:'REMARKS',get:function(c){return [c.remNo,c.remarks].filter(Boolean).join(' ');},list:function(){return S.names.rem;}}};
 function rpRender(){
   var sc=S.scbs[rp.i];if(!sc){rpEl.hidden=true;return;}
-  var n=Math.max(1,Math.min(MAXSTR,parseInt(sc.strings,10)||10)),g='',c='';
+  var K=RPK[rp.k||'rep'],n=Math.max(1,Math.min(MAXSTR,parseInt(sc.strings,10)||10)),g='',c='';
   for(var k=1;k<=n;k++)g+='<button type="button" class="rb'+(rp.sel.indexOf(k)>=0?' on':'')+'" data-rpn="'+k+'">'+k+'</button>';
-  RCOMP.forEach(function(x,j){if(x.nobtn)return;c+='<button type="button" class="rb cp" data-rpc="'+j+'">'+esc(x.c)+'</button>';if(x.c==='FHP')c+='<button type="button" class="rb cp" data-rpfuse="1">+ Fuse too</button>';});
-  rpBox.innerHTML='<h3>REPLACED COMPONENTS \u00b7 '+esc(equip(sc))+'</h3><div class="rps">'+n+' strings</div>'+
-    '<div class="rpo">'+(sc.replaced?esc(sc.replaced):'<span style="color:var(--muted,#6b7280)">Nothing added yet</span>')+'</div>'+
+  var SL=(rp.k==='obs'||rp.k==='rem')?rpSents():[];rp.sl=SL;
+  if(rp.k==='obs'||rp.k==='rem'){SL.forEach(function(x,j){c+='<button type="button" class="rb cp rbs" data-rps="'+j+'">'+esc(x)+'</button>';});if(!c)c='<span class="hint">No sentences yet. A supervisor adds them in PM plan \u2192 Dropdown lists.</span>';}
+  else RCOMP.forEach(function(x,j){if(x.nobtn)return;c+='<button type="button" class="rb cp" data-rpc="'+j+'">'+esc(x.c)+'</button>';if(x.c==='FHP')c+='<button type="button" class="rb cp" data-rpfuse="1">+ Fuse too</button>';});
+  var tx=K.get(sc);
+  rpBox.innerHTML='<h3>'+K.t+' \u00b7 '+esc(equip(sc))+'</h3><div class="rps">'+n+' strings</div>'+
+    '<div class="rpo">'+(tx?esc(tx):'<span style="color:var(--muted,#6b7280)">Nothing added yet</span>')+'</div>'+
     '<div class="rpl">1 \u00b7 TAP THE STRINGS</div><div class="rpg">'+g+'</div>'+
     '<div class="rpsel">Selected: <b>'+(rp.sel.length?rp.sel.join(','):'\u2014')+'</b></div>'+
-    '<div class="rpl">2 \u00b7 TAP THE COMPONENT</div><div class="rpg">'+c+'</div>'+
-    '<div class="rpg" style="margin-top:16px"><button type="button" class="rb" data-rpundo="1">Undo last</button><button type="button" class="rb" data-rptype="1">Type instead</button><button type="button" class="rb go" data-rpdone="1">Done</button></div>';
+    (rp.k==='obs'?'<div class="rpl">2 \u00b7 TAP WHAT WAS DONE</div><div class="rpg"><button type="button" class="rb cp" data-rpp="FHN">FHN</button><button type="button" class="rb cp" data-rpp="FHP">FHP</button></div><div class="rpl">3 \u00b7 TAP THE ENDING OR SENTENCE</div>':(rp.k==='rep'?'<div class="rpl">2 \u00b7 IMAGE NUMBER (optional)</div><div class="rpg"><input class="in mono" id="rp-img" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="8" value="'+esc(rp.img)+'" style="width:170px;min-height:48px;font-size:1.25rem;font-weight:700"></div><div class="rpl">3 \u00b7 TAP THE COMPONENT</div>':'<div class="rpl">2 \u00b7 TAP THE '+((rp.k==='rem')?'SENTENCE':'COMPONENT')+'</div>'))+'<div class="rpg'+((rp.k==='obs'||rp.k==='rem')?' rpcol':'')+'">'+c+'</div>'+
+    '<div class="rpg" style="margin-top:16px"><button type="button" class="rb" data-rpundo="1">Undo last</button>'+'<button type="button" class="rb" data-rptype="1">Type instead</button><button type="button" class="rb go" data-rpdone="1">Done</button></div>';
 }
-function rpSync(){var sc=S.scbs[rp.i];save();var ta=document.querySelector('#mr-'+rp.i+' [data-jf="replaced"]');if(ta)ta.value=sc.replaced;updMainRow(rp.i);var mb=$('matbox');if(mb&&ui.view==='main')matsRefresh();}
-function rpClose(){rpEl.hidden=true;rp.i=-1;rp.sel=[];}
+function rpSents(){
+  if(rp.k==='obs'){var L=RPK.obs.list().filter(function(x){return !/^(FHN|FHP|FHN\s*&\s*FHP)\s+re tightness done\.?$/i.test(String(x).trim());});return ['re tightness done.'].concat(L.filter(function(x){return x!=='re tightness done.';}));}
+  return RPK[rp.k].list();
+}
+function rowRefresh(i){
+  var row=$('mr-'+i),sc=S.scbs[i];if(!row||!sc)return;
+  var t=document.createElement('tbody');t.innerHTML=mrow(sc,i);var nr=t.firstChild;row.replaceWith(nr);nr.querySelectorAll('input.ci[data-jf]').forEach(fit);if(typeof markDups==='function')markDups();
+}
+function pxSplit(t){var m=/^(\d+(?:,\d+)*)\s+([\s\S]*)$/.exec(t);return m?[m[1],m[2]]:['',t];}
+function pxAppend(sc,k,nums,sent){
+  var T=RPK[k].get(sc).trim();pxSet(sc,k,(T?T+' ':'')+stNums(nums,sent)+sent);
+}
+function stNums(nums,sent){return nums?((/low\s*voc/i.test(sent)?'ST. ':'')+nums+' '):'';}
+function pxSet(sc,k,t){t=String(t).replace(/\s*&\s*$/,'').trim();if(k==='obs'){sc.obs='';sc.obsPh=t;}else{sc.remNo='';sc.remarks=t;}}
+function pxJoin(sc,k,nums,sent){
+  var T=RPK[k].get(sc).trim(),list=RPK[k].list(),best=-1,pl='';
+  list.forEach(function(p){var ix=T.lastIndexOf(p);if(ix>best||(ix===best&&p.length>pl.length)){best=ix;pl=p;}});
+  if(best<0||best+pl.length<T.length){pxAppend(sc,k,nums,sent);return;}
+  var a=pl.split(/\s+/),b=sent.split(/\s+/),n=0;
+  while(n<a.length-1&&n<b.length-1&&a[a.length-1-n]===b[b.length-1-n])n++;
+  var pre=n>=2?a.slice(0,a.length-n).join(' '):pl;
+  pxSet(sc,k,T.slice(0,best)+pre+' & '+(nums?nums+' ':'')+sent);
+}
+function pxUndo(sc,k){
+  var T=RPK[k].get(sc).trim(),list=RPK[k].list(),best=-1,bl=0;
+  list.forEach(function(p){var ix=T.lastIndexOf(p);if(ix>best||(ix===best&&p.length>bl)){best=ix;bl=p.length;}});
+  var rest;
+  if(best<0){rest='';}
+  else{var before=T.slice(0,best).replace(/((?:ST\.\s*)?\d+(?:,\d+)*\s*)$/,'').trim();rest=before;}
+  pxSet(sc,k,rest);
+}
+function rpSync(){var sc=S.scbs[rp.i];save();rowRefresh(rp.i);var mb=$('matbox');if(mb&&ui.view==='main')matsRefresh();}
+function rpClose(){
+  if(rp.k==='rep'&&rp.i>=0&&S.scbs[rp.i]){var sc=S.scbs[rp.i],t=String(sc.replaced||'').replace(/[,\s]+$/,'');if(t){t=t.replace(/\s*\(\d+\)$/,'');if(rp.img)t+=' ('+rp.img+')';sc.replaced=t;rowRefresh(rp.i);save();var mb=$('matbox');if(mb&&ui.view==='main')matsRefresh();}}
+  rpEl.hidden=true;rp.i=-1;rp.sel=[];rp.k='rep';rp.amp=false;rp.img='';
+}
+rpEl.addEventListener('input',function(e){if(e.target.id==='rp-img'){var v=e.target.value.replace(/\D/g,'').slice(0,8);if(v!==e.target.value)e.target.value=v;rp.img=v;}});
 rpEl.addEventListener('click',function(e){
   if(e.target===rpEl){rpClose();return;}
   var b=e.target.closest('button');if(!b)return;var d=b.dataset,sc=S.scbs[rp.i];if(!sc)return;
   if(d.rpn){var v=+d.rpn,x=rp.sel.indexOf(v);if(x>=0)rp.sel.splice(x,1);else{rp.sel.push(v);rp.sel.sort(function(a,b2){return a-b2;});}rpRender();return;}
-  if(d.rpc!==undefined){var ent=(rp.sel.length?rp.sel.join(',')+' ':'')+RCOMP[+d.rpc].t,cur0=String(sc.replaced||'').replace(/[,\s]+$/,'');
+  if(d.rpc!==undefined){var rc=RCOMP[+d.rpc],cur0=String(sc.replaced||'').replace(/[,\s]+$/,''),ent;
+    if(rc.qty){var hm=/(?:^|, )(?:(\d+) )?door hinge$/i.exec(cur0);
+      if(hm&&!rp.sel.length){sc.replaced=cur0.slice(0,hm.index)+(hm.index?', ':'')+((parseInt(hm[1],10)||1)+1)+' door hinge';rp.sel=[];rpSync();rpRender();return;}
+      ent=(rp.sel.length===1?rp.sel[0]+' ':'')+rc.t;}
+    else ent=(rp.sel.length&&!rc.ns?'ST. '+rp.sel.join(',')+' ':'')+rc.t;
     sc.replaced=cur0?cur0+', '+ent:ent;rp.sel=[];rpSync();rpRender();return;}
-  if(d.rpfuse){var cf=String(sc.replaced||'').replace(/[,\s]+$/,'');if(!cf){toast('Add the fuse holders first');return;}if(!/ and fuse$/i.test(cf))sc.replaced=cf+' and fuse';rp.sel=[];rpSync();rpRender();return;}
+  if(d.rps!==undefined){var sn=(rp.sl||[])[+d.rps];if(sn===undefined)return;
+    if(rp.k==='obs'){var T0=RPK.obs.get(sc).trim(),cont=/^[a-z]/.test(sn),nm=rp.sel.join(',');pxSet(sc,'obs',(T0?T0+' ':'')+(!cont?stNums(nm,sn):'')+sn);}
+    else pxAppend(sc,rp.k,rp.sel.join(','),sn);
+    rp.sel=[];rpSync();rpRender();return;}
+  if(d.rpp){var T1=RPK.obs.get(sc).trim(),pc=(rp.sel.length?rp.sel.join(',')+' ':'')+d.rpp;pxSet(sc,'obs',/(?:FHN|FHP)$/.test(T1)?T1+' & '+pc:(T1?T1+' ':'')+pc);rp.sel=[];rpSync();rpRender();return;}
+    if(d.rpfuse){var cf=String(sc.replaced||'').replace(/[,\s]+$/,'');if(!cf){toast('Add the fuse holders first');return;}if(!/ and fuse$/i.test(cf))sc.replaced=cf+' and fuse';rp.sel=[];rpSync();rpRender();return;}
+  if(d.rpundo&&rp.k==='obs'){var T2=RPK.obs.get(sc).trim(),done2=false;(rpSents()).forEach(function(x){if(!done2&&x&&T2.slice(-x.length)===x){var hd=T2.slice(0,T2.length-x.length).trim();if(!/^[a-z]/.test(x))hd=hd.replace(/((?:ST\.\s*)?\d+(?:,\d+)*\s*)$/,'').trim();T2=hd;done2=true;}});if(!done2)T2=T2.replace(/(?:^|\s*&\s*|\s+)(?:\d+(?:,\d+)*\s+)?(?:FHN|FHP)$/,'').trim();pxSet(sc,'obs',T2);rp.sel=[];rpSync();rpRender();return;}
+  if(d.rpundo&&rp.k==='rem'){pxUndo(sc,rp.k);rp.sel=[];rpSync();rpRender();return;}
   if(d.rpundo){var t0=String(sc.replaced||'').replace(/[,\s]+$/,'');if(/ and fuse$/i.test(t0)){sc.replaced=t0.replace(/ and fuse$/i,'');rp.sel=[];rpSync();rpRender();return;}var ix=t0.lastIndexOf(', ');sc.replaced=ix>=0?t0.slice(0,ix):'';rp.sel=[];rpSync();rpRender();return;}
-  if(d.rptype){var ii=rp.i;rpClose();var ta=document.querySelector('#mr-'+ii+' [data-jf="replaced"]');if(ta){ta.focus();try{ta.scrollIntoView({block:'center'});}catch(x2){}}return;}
+  if(d.rptype){var ii=rp.i,fk=rp.k==='obs'?'obsx':rp.k==='rem'?'remx':'replaced';rpClose();var ta=document.querySelector('#mr-'+ii+' [data-jf="'+fk+'"]');if(ta){ta.focus();try{ta.scrollIntoView({block:'center'});}catch(x2){}}return;}
   if(d.rpdone){rpClose();return;}
 });
 pane.addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b)return;var s=cur(),d=b.dataset;
-  if(d.rpopen!==undefined){rp.i=+d.rpopen;rp.sel=[];rpRender();rpEl.hidden=false;return;}
-  if(d.now!==undefined){var ni=+d.now,nr=S.scbs[ni];nr[d.nf]=nowHM();var ne=document.querySelector('#mr-'+ni+' [data-jf="'+d.nf+'"]');if(ne)ne.value=nr[d.nf];ui.last=ni;save();updMainRow(ni);chrome();return;}
+  if(d.rpopen!==undefined){rp.i=+d.rpopen;rp.k=d.rpk||'rep';rp.amp=false;rp.img='';rp.sel=[];if(rp.k==='rep'){var oc=S.scbs[rp.i],mm=/\s*\((\d+)\)$/.exec(String(oc.replaced||'').trim());if(mm){rp.img=mm[1];oc.replaced=String(oc.replaced).trim().replace(/\s*\(\d+\)$/,'');}}rpRender();rpEl.hidden=false;return;}
+  if(d.now!==undefined){var ni=+d.now,nr=S.scbs[ni];var oldT=nr[d.nf];nr[d.nf]=nowHM();pairTime(nr,d.nf,oldT,nr[d.nf]);var ne=document.querySelector('#mr-'+ni+' [data-jf="'+d.nf+'"]');if(ne)ne.value=nr[d.nf];ui.last=ni;save();updMainRow(ni);chrome();return;}
   if(d.copyt!==undefined){var ci=+d.copyt,src0=S.scbs[ci];if(!src0.start&&!src0.end){toast('Enter this row\'s time first');return;}var tw=twins(ci);tw.forEach(function(k){var o=S.scbs[k];o.start=src0.start;o.end=src0.end;['start','end'].forEach(function(f){var e2=document.querySelector('#mr-'+k+' [data-jf="'+f+'"]');if(e2)e2.value=o[f];});updMainRow(k);});save();chrome();toast('Time copied to '+tw.length+' matching SCB'+(tw.length===1?'':'s'));return;}
   if(d.nextun!==undefined){nextUnfinished();return;}
   if(d.chk){var cur_=s.checks[d.chk];if(cur_===d.v){delete s.checks[d.chk];}else{s.checks[d.chk]=d.v;}save();renderScb();chrome();return;}
+  if(d.allrest){var key=s.id||s.scb+'|'+s.inv+'|'+s.block;if(!ui.allokU)ui.allokU={};
+    if(allokUndoable(s)){var u=ui.allokU[key],ids=(u&&u.some(function(id){return s.checks[id]==='ok';}))?u:ALL;ids.forEach(function(id){if(s.checks[id]==='ok')delete s.checks[id];});delete ui.allokU[key];toast('All OK undone');}
+    else{var set=[];ALL.forEach(function(id){if(!s.checks[id]){s.checks[id]='ok';set.push(id);}});ui.allokU[key]=set;toast(set.length+' items marked OK');}
+    save();renderScb();chrome();return;}
   if(d.allok){SECTIONS.forEach(function(sec){if(sec.id!==d.allok)return;var allOk=sec.items.every(function(it){return s.checks[it[0]]==='ok';});sec.items.forEach(function(it){if(allOk)delete s.checks[it[0]];else s.checks[it[0]]='ok';});});save();renderScb();chrome();return;}
   if(d.loto){s.loto=!s.loto;save();renderScb();chrome();return;}
-  if(d.now){s[d.now]=nowHM();save();renderScb();chrome();return;}
+  if(d.now){var oN=s[d.now];s[d.now]=nowHM();pairTime(s,d.now,oN,s[d.now]);save();renderScb();chrome();return;}
   if(d.nav){var n=S.sel+parseInt(d.nav,10);if(n>=0&&n<S.scbs.length){S.sel=n;save();show('scb',true);}return;}
   if(d.preset!==undefined){var p=PRESETS[+d.preset];if(s.remarks.indexOf(p)<0){s.remarks=(s.remarks?s.remarks.replace(/\s+$/,'')+' ':'')+p;save();var t=$('remarks');if(t)t.value=s.remarks;chrome();}return;}
   if(d.matadd){matRows().push('');matsRefresh('[data-matsel="'+(ui.matRows.length-1)+'"]');return;}
-  if(d.matdel!==undefined){var rr=+d.matdel,nm=ui.matRows[rr];if(nm){S.mats[nm]=0;if(!S.mats._ov)S.mats._ov={};S.mats._ov[nm]=1;}ui.matRows.splice(rr,1);save();matsRefresh();return;}
+  if(d.matdel!==undefined){var rr=+d.matdel,nm=ui.matRows[rr];if(nm)setTotal(nm,0);ui.matRows.splice(rr,1);save();matsRefresh();return;}
   if(d.mat!==undefined){var m=MATERIALS[+d.mat];S.mats[m]=Math.max(0,(S.mats[m]||0)+parseInt(d.d,10));save();show(ui.view,false);return;}
   if(d.exp){ui.exp=d.exp;renderExport();return;}
   if(d.expdate!==undefined){ui.expDate=d.expdate;renderExport();return;}
@@ -1563,12 +1714,13 @@ pane.addEventListener('click',function(e){
 });
 pane.addEventListener('input',function(e){
   var t=e.target,d=t.dataset,s=cur();
-  if(d.f){s[d.f]=t.value;}
-  else if(d.matsel!==undefined){var rw=+d.matsel,old=ui.matRows[rw],nv=t.value;if(old&&nv!==old){if(!S.mats._ov)S.mats._ov={};S.mats[nv]=nv?(S.mats[old]||0):0;if(nv)S.mats._ov[nv]=1;S.mats[old]=0;delete S.mats._ov[old];}ui.matRows[rw]=nv;save();matsRefresh(nv?'[data-matv="'+MATERIALS.indexOf(nv)+'"]':'[data-matsel="'+rw+'"]');return;}
-  else if(d.matv!==undefined){var mv=t.value.replace(/\D/g,'').slice(0,5);if(mv!==t.value)t.value=mv;var mn=MATERIALS[+d.matv];if(!S.mats._ov)S.mats._ov={};if(mv===''){delete S.mats._ov[mn];S.mats[mn]=0;}else{S.mats._ov[mn]=1;S.mats[mn]=parseInt(mv,10);}var bg=t.parentNode&&t.parentNode.querySelector('.autob');if(bg)bg.remove();}
+  if(d.f){var oF=s[d.f];s[d.f]=t.value;pairTime(s,d.f,oF,t.value);}
+  else if(d.matsel!==undefined){var rw=+d.matsel,old=ui.matRows[rw],nv=t.value;if(old&&nv!==old){var oc=S.mats[old]||0;setTotal(old,0);if(nv)setTotal(nv,oc);}ui.matRows[rw]=nv;save();matsRefresh(nv?'[data-matv="'+MATERIALS.indexOf(nv)+'"]':'[data-matsel="'+rw+'"]');return;}
+  else if(d.matv!==undefined){var mv=t.value.replace(/\D/g,'').slice(0,5);if(mv!==t.value)t.value=mv;var mn=MATERIALS[+d.matv];if(mv==='')setTotal(mn,autoTotals()[mn]||0);else setTotal(mn,parseInt(mv,10));var bg=t.parentNode&&t.parentNode.querySelector('.autob');if(bg)bg.remove();t.parentNode.insertAdjacentHTML('afterbegin',autoBadge(mn));}
   else if(d.note){s.notes[d.note]=t.value;}
-  else if(d.voc!==undefined){s.voc[+d.voc]=t.value;}
-  else if(d.imp!==undefined){s.imp[+d.imp]=t.value;}
+  else if(d.voc!==undefined){s.voc[+d.voc]=t.value;fastJump(t,'voc',s);}
+  else if(d.imp!==undefined){s.imp[+d.imp]=t.value;fastJump(t,'imp',s);}
+  else if(d.fast){if(d.fast==='voc'){var fv=parseInt(t.value,10);FAST.voc=isNaN(fv)?0:Math.max(0,Math.min(6,fv));}else if(d.fast==='pair'){FAST.pair=t.checked?1:0;}else{FAST.imp=t.checked?1:0;}fastSave();return;}
   else if(d.j){S.job[d.j]=t.value;}
   else if(d.tech!==undefined){S.job.techs[+d.tech]=t.value;}
   else if(d.inst){S.job.inst[d.inst][d.k]=t.value;if(d.k==='cal'){var w=$('cw-'+d.inst);if(w)w.textContent=calWarn(t.value);}}
@@ -1579,7 +1731,8 @@ pane.addEventListener('input',function(e){
   else if(d.gen){ui.gen[d.gen]=t.value;var gp=$('gen-prev');if(gp)gp.innerHTML=genPreviewHtml();return;}
   else if(d.mc!==undefined){S.scbs[+d.mc].comm=t.value;}
   else if(d.ji!==undefined){var row=S.scbs[+d.ji],f=d.jf,v=t.value;
-    if(f==='strings'){var n=parseInt(v,10);if(!isNaN(n)&&n>=1&&n<=MAXSTR)row.strings=n;}else row[f]=v;
+    if(f==='obsx'){row.obs='';row.obsPh=v;}else if(f==='remx'){row.remNo='';row.remarks=v;}
+    var oJ=row[f];if(f==='obsx'||f==='remx'){}else if(f==='strings'){var n=parseInt(v,10);if(!isNaN(n)&&n>=1&&n<=MAXSTR)row.strings=n;}else row[f]=v;if(f==='start'||f==='end')pairTime(row,f,oJ,v);
     if(t.tagName==='SELECT'){var ht=t.parentNode&&t.parentNode.querySelector('.pht');if(ht)ht.textContent=v;var ob=t.closest('.obsc');if(ob)ob.classList.toggle('hasph',!!v);}
     if(f==='irAfter'){row.irAuto=false;t.classList.remove('auto');}
     if(f==='replaced'&&ui.view==='main'){autoMats();var mb2=$('matbox');if(mb2&&!mb2.contains(document.activeElement))matsRefresh();}
@@ -1591,7 +1744,7 @@ pane.addEventListener('input',function(e){
   chrome();
 });
 pane.addEventListener('keydown',function(e){
-  if(e.key==='Enter'&&e.target.tagName==='TEXTAREA'&&e.target.dataset.jf==='replaced'){e.preventDefault();return;}
+  if(e.key==='Enter'&&e.target.tagName==='TEXTAREA'&&/^(replaced|obsx|remx)$/.test(e.target.dataset.jf||'')){e.preventDefault();return;}
   if(e.key==='Enter'&&(e.target.id==='pin-a'||e.target.id==='pin-b')){e.preventDefault();var ub=pane.querySelector('[data-unlock]');if(ub)ub.click();return;}
   if(e.key==='Enter'&&viKind(e.target)){e.preventDefault();nextStr(e.target);return;}
   if(e.key==='Enter'&&e.target.dataset.nin){e.preventDefault();var bb=pane.querySelector('[data-nadd="'+e.target.dataset.nin+'"]');if(bb)bb.click();}
