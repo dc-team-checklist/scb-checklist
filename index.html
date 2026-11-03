@@ -1586,7 +1586,7 @@ function rpRender(){
     '<div class="rpg" style="margin-top:16px"><button type="button" class="rb" data-rpundo="1">Undo last</button>'+'<button type="button" class="rb" data-rptype="1">Type instead</button><button type="button" class="rb go" data-rpdone="1">Done</button></div>';
 }
 function rpSents(){
-  if(rp.k==='obs'){var L=RPK.obs.list().filter(function(x){return !/^(FHN|FHP|FHN\s*&\s*FHP)\s+re tightness done\.?$/i.test(String(x).trim());});return ['re tightness done.'].concat(L.filter(function(x){return x!=='re tightness done.';}));}
+  if(rp.k==='obs'){var L=RPK.obs.list().filter(function(x){return !/^(FHN|FHP|FHN\s*&\s*FHP)\s+re tightness done\.?$/i.test(String(x).trim());});return L.filter(function(x){return !/^re tightness done\.?$/i.test(String(x).trim());});}
   return RPK[rp.k].list();
 }
 function rowRefresh(i){
