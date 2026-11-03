@@ -657,6 +657,7 @@ function stat(s){
   return {ans:ans,nok:nok,m:m,flags:fl,state:done?'done':(touched?'wip':'new'),o:o};
 }
 function comm(s){return s.comm||'';}
+function vocAvg(s){var t=0,k=0;for(var i=0;i<s.strings;i++){var x=num(s.voc[i]);if(x!==null){t+=x;k++;}}return k?Math.round(t/k*10)/10:null;}
 function impSum(s){var t=0,k=0;for(var i=0;i<s.strings;i++){var x=num(s.imp[i]);if(x!==null){t+=x;k++;}}return k?Math.round(t*10)/10:null;}
 
 /* ---------- header + rail ---------- */
@@ -731,8 +732,8 @@ function renderScb(){
       '<div><input class="in'+(bi?' bad':'')+'" type="number" step="any" inputmode="decimal" enterkeyhint="next" data-imp="'+i+'" value="'+esc(s.imp[i])+'" aria-label="String '+(i+1)+' Imp amps"><span class="u">Imp A</span></div></div></div>';
   }
   var sum=impSum(s);
-  h+='</div><div class="totals"><label class="f">Total Voc (V)<input class="in mono" inputmode="decimal" data-f="vocT" value="'+esc(s.vocT)+'"></label>'+
-    '<label class="f">Total Imp (A)<input class="in mono" inputmode="decimal" id="impT" data-f="impT" value="'+esc(s.impT)+'" placeholder="'+(sum===null?'':'Σ '+sum)+'"></label></div>'+
+  h+='</div><div class="totals"><label class="f">Total Voc (V)<input class="in mono" inputmode="decimal" data-f="vocT" id="vocT" value="'+esc(s.vocT!==''?s.vocT:(vocAvg(s)===null?'':vocAvg(s)))+'"></label>'+
+    '<label class="f">Total Imp (A)<input class="in mono" inputmode="decimal" id="impT" data-f="impT" value="'+esc(s.impT!==''?s.impT:(sum===null?'':sum))+'"></label></div>'+
     '</section>';
 
   h+='<section class="card"><h2>Replaced components &amp; observations</h2><div class="fields" style="grid-template-columns:1fr">'+
@@ -772,7 +773,8 @@ function refreshScbLive(){
     var a=card.querySelector('[data-voc]'),b=card.querySelector('[data-imp]');
     a.className='in'+(bv?' bad':'');b.className='in'+(bi?' bad':'');
   }
-  var sum=impSum(s),it=$('impT');if(it)it.placeholder=sum===null?'':'Σ '+sum;
+  [['vocT',vocAvg(s)],['impT',impSum(s)]].forEach(function(q){var el=$(q[0]);if(el&&document.activeElement!==el&&String(s[q[0]])==='')el.value=q[1]===null?'':q[1];});
+  
   syncPhr();
   updTodo();
 }
@@ -1055,13 +1057,13 @@ function dataset(kind,src){
       var nk=[];ALL.forEach(function(id){if(s.checks[id]==='nok')nk.push(id+(s.notes[id]?' ('+s.notes[id]+')':''));});
       r.push([i+1,equip(s),s.row,fmtDate(s.planned),s.strings,comm(s),s.start,s.end,s.irBefore,s.irAfter,s.replaced,obsText(s),[s.remNo,s.remarks].filter(Boolean).join(' ')]);
     });
-    r.push([]);r.push(['Total usage']);MATERIALS.forEach(function(m){r.push([m,(src.mats&&src.mats[m])||0]);});
+    r.push([]);r.push(['Total usage']);MATERIALS.forEach(function(m){var q=(src.mats&&src.mats[m])||0;if(q>0)r.push([m,q]);});
   }else if(kind==='meas'){
     r.push(['Equipment','Measured at','String','Voc (V)','Imp (A)','Flag']);
     src.scbs.forEach(function(s){var o=stat(s).o;for(var i=0;i<s.strings;i++){
       if(String(s.voc[i])===''&&String(s.imp[i])==='')continue;
       r.push([equip(s),s.mtime,'ST-'+(i+1),s.voc[i],s.imp[i],(o.voc[i]?'Voc ':'')+(o.imp[i]?'Imp':'')]);}
-      var sm=impSum(s);if(s.vocT!==''||s.impT!==''||sm!==null)r.push([equip(s),s.mtime,'TOTAL',s.vocT,s.impT!==''?s.impT:(sm===null?'':sm),'']);});
+      var sm=impSum(s),va=vocAvg(s);if(s.vocT!==''||s.impT!==''||sm!==null||va!==null)r.push([equip(s),s.mtime,'TOTAL',s.vocT!==''?s.vocT:(va===null?'':va),s.impT!==''?s.impT:(sm===null?'':sm),'']);});
   }else{
     r.push(['Equipment','Item','Result','Note']);
     src.scbs.forEach(function(s){ALL.forEach(function(id){var v=s.checks[id];if(v)r.push([equip(s),id,v==='ok'?'OK':'NOT OK',s.notes[id]||'']);});});
@@ -1151,7 +1153,7 @@ function buildScbSheet(wb,s,src,name,logoId){
       xput(ws,ws.getCell(b,col).address,has?numOr(s.voc[idx]):'',{sz:10,fmt:'0',fill:(has&&stat(s).o&&stat(s).o.voc[idx])?XF.warn:undefined});
       xput(ws,ws.getCell(c,col).address,has?numOr(s.imp[idx]):'',{sz:10,fmt:'0.0',fill:(has&&stat(s).o&&stat(s).o.imp[idx])?XF.warn:undefined});}
     xput(ws,'Q'+a,bk?'':'TOTAL',{b:1,sz:9});
-    xput(ws,'Q'+b,bk?'':numOr(s.vocT),{sz:10});xput(ws,'Q'+c,bk?'':(s.impT!==''?numOr(s.impT):(sm===null?'':sm)),{sz:10,fmt:'0.0'});
+    xput(ws,'Q'+b,bk?'':(s.vocT!==''?numOr(s.vocT):(vocAvg(s)===null?'':vocAvg(s))),{sz:10,fmt:'0.0'});xput(ws,'Q'+c,bk?'':(s.impT!==''?numOr(s.impT):(sm===null?'':sm)),{sz:10,fmt:'0.0'});
     xmerge(ws,'B'+b+':D'+b,bk?'':'Voltage (VOC)',{b:1,sz:9,fill:G});xmerge(ws,'B'+c+':D'+c,bk?'':'Current (IMP)',{b:1,sz:9,fill:G});
     ws.getRow(a).height=18;ws.getRow(b).height=28;ws.getRow(c).height=28;r+=3;
   }
@@ -1190,9 +1192,10 @@ function buildMainSheet(wb,src,names){
   var end=2+scbs.length;xgrid(ws,2,1,end,16);xbox(ws,2,1,end,16,'medium');
   var u=end+3;
   xmerge(ws,'B'+u+':C'+u,'TOTAL USAGE',{b:1,sz:11,fill:XF.amber});ws.getRow(u).height=22;
-  MATERIALS.forEach(function(x,i){var r=u+1+i,q=src.mats&&src.mats[x];
-    xput(ws,'B'+r,x,{sz:10,h:'left'});xput(ws,'C'+r,q?q:'',{sz:10});});
-  xgrid(ws,u,2,u+MATERIALS.length,3);xbox(ws,u,2,u+MATERIALS.length,3,'medium');
+  var used=MATERIALS.filter(function(x){return (src.mats&&src.mats[x]||0)>0;});
+  used.forEach(function(x,i){var r=u+1+i;
+    xput(ws,'B'+r,x,{sz:10,h:'left'});xput(ws,'C'+r,src.mats[x],{sz:10});});
+  xgrid(ws,u,2,u+used.length,3);xbox(ws,u,2,u+used.length,3,'medium');
   return ws;
 }
 function buildWorkbook(src){
