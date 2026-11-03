@@ -1637,9 +1637,10 @@ rpEl.addEventListener('click',function(e){
     if(rp.k==='obs'){var T0=RPK.obs.get(sc).trim(),cont=/^[a-z]/.test(sn),nm=rp.sel.join(',');pxSet(sc,'obs',(T0?T0+' ':'')+(!cont?stNums(nm,sn):'')+sn);}
     else pxAppend(sc,rp.k,rp.sel.join(','),sn);
     rp.sel=[];rpSync();rpRender();return;}
-  if(d.rpp){var T1=RPK.obs.get(sc).trim(),pc=(rp.sel.length?rp.sel.join(',')+' ':'')+d.rpp;pxSet(sc,'obs',/(?:FHN|FHP)$/.test(T1)?T1+' & '+pc:(T1?T1+' ':'')+pc);rp.sel=[];rpSync();rpRender();return;}
+  if(d.rpp){var TE=' re tightness done.',T1=RPK.obs.get(sc).trim().replace(/\s*re tightness done\.?$/i,'').trim(),join=/(?:FHN|FHP)$/.test(T1),pc=(rp.sel.length?(join?'':'ST. ')+rp.sel.join(',')+' ':'')+d.rpp;pxSet(sc,'obs',(join?T1+' & ':(T1?T1+' ':''))+pc+TE);rp.sel=[];rpSync();rpRender();return;}
     if(d.rpfuse){var cf=String(sc.replaced||'').replace(/[,\s]+$/,'');if(!cf){toast('Add the fuse holders first');return;}if(!/ and fuse$/i.test(cf))sc.replaced=cf+' and fuse';rp.sel=[];rpSync();rpRender();return;}
   if(d.rpslash){var ii=$('rp-img'),vv=String(rp.img||'');if(vv&&vv.slice(-1)!=='/'){vv+='/';rp.img=vv;}if(ii){ii.value=vv;ii.focus();try{ii.setSelectionRange(vv.length,vv.length);}catch(_){}}return;}
+  if(d.rpundo&&rp.k==='obs'&&/(?:FH[NP])\s+re tightness done\.?$/i.test(RPK.obs.get(sc).trim())){var T3=RPK.obs.get(sc).trim().replace(/\s*re tightness done\.?$/i,'').replace(/(?:^|\s*&\s*|\s+)(?:ST\.\s*)?(?:\d+(?:,\d+)*\s+)?FH[NP]$/i,'').trim();if(/FH[NP]$/i.test(T3))T3+=' re tightness done.';pxSet(sc,'obs',T3);rp.sel=[];rpSync();rpRender();return;}
   if(d.rpundo&&rp.k==='obs'){var T2=RPK.obs.get(sc).trim(),done2=false;(rpSents()).forEach(function(x){if(!done2&&x&&T2.slice(-x.length)===x){var hd=T2.slice(0,T2.length-x.length).trim();if(!/^[a-z]/.test(x))hd=hd.replace(/((?:ST\.\s*)?\d+(?:,\d+)*\s*)$/,'').trim();T2=hd;done2=true;}});if(!done2)T2=T2.replace(/(?:^|\s*&\s*|\s+)(?:\d+(?:,\d+)*\s+)?(?:FHN|FHP)$/,'').trim();pxSet(sc,'obs',T2);rp.sel=[];rpSync();rpRender();return;}
   if(d.rpundo&&rp.k==='rem'){pxUndo(sc,rp.k);rp.sel=[];rpSync();rpRender();return;}
   if(d.rpundo){var t0=String(sc.replaced||'').replace(/[,\s]+$/,'');if(/ and fuse$/i.test(t0)){sc.replaced=t0.replace(/ and fuse$/i,'');rp.sel=[];rpSync();rpRender();return;}var ix=t0.lastIndexOf(', ');sc.replaced=ix>=0?t0.slice(0,ix):'';rp.sel=[];rpSync();rpRender();return;}
