@@ -1,22 +1,17 @@
-var C='scb-offline-v1';
-var FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
-self.addEventListener('install',function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(FILES);}).then(function(){return self.skipWaiting();}));});
-self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==C;}).map(function(k){return caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
-function fromCache(req){return caches.match(req,{ignoreSearch:true}).then(function(m){return m||caches.match('./index.html');});}
-self.addEventListener('fetch',function(e){
-  var r=e.request,u=new URL(r.url);
-  if(r.method!=='GET'||u.origin!==location.origin)return;
-  e.respondWith(new Promise(function(res){
-    var done=false,t=setTimeout(function(){if(done)return;fromCache(r).then(function(m){if(m&&!done){done=true;res(m);}});},3500);
-    fetch(r).then(function(n){
-      if(done)return;
-      if(!n.ok){clearTimeout(t);fromCache(r).then(function(m){done=true;res(m||n);});return;}
-      done=true;clearTimeout(t);
-      var cp=n.clone();if(n.ok)caches.open(C).then(function(c){c.put(r,cp);});
-      res(n);
-    }).catch(function(){
-      clearTimeout(t);if(done)return;
-      fromCache(r).then(function(m){done=true;res(m||new Response('Offline',{status:503}));});
-    });
+// PDF Studio offline support: the app is cached on install and served from the cache,
+// so it starts instantly and works without internet. Updates download quietly in the background.
+const CACHE = 'pdfstudio-v2';
+const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-16.png", "./icon-24.png", "./icon-32.png", "./icon-48.png", "./icon-64.png", "./icon-96.png", "./icon-128.png", "./icon-192.png", "./icon-256.png", "./icon-512.png", "./icon-maskable.png", "./file-16.png", "./file-24.png", "./file-32.png", "./file-48.png", "./file-64.png", "./file-128.png", "./file-256.png"];
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
+self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
+self.addEventListener('fetch', e => {
+  const req = e.request; if (req.method !== 'GET') return;
+  const url = new URL(req.url); if (url.origin !== location.origin) return;
+  const key = req.mode === 'navigate' ? './index.html' : req;
+  e.respondWith(caches.open(CACHE).then(async c => {
+    const hit = await c.match(key, { ignoreSearch: true });
+    const net = fetch(req.mode === 'navigate' ? './index.html' : req).then(r => { if (r.ok) c.put(key, r.clone()); return r; }).catch(() => null);
+    if (hit) { e.waitUntil(net); return hit; }
+    return (await net) || new Response('Offline', { status: 503 });
   }));
 });
