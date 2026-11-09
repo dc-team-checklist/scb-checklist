@@ -569,7 +569,7 @@ var RCOMP=[
 var RCRE=RCOMP.map(function(x){return '\\b('+x.re+')(?![a-z0-9])';}).join('|')+'|(\\d+)';
 function comp0g(i){return !!RCOMP[i].g;}
 function replTotals(text,tot){
-  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=0,hold=0,lastN=0,lastV=1,N=RCOMP.length;
+  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/\d+(?:\/\d+)*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=0,hold=0,lastN=0,lastV=1,N=RCOMP.length;
   while((m=re.exec(low))){
     if(m[N+1]!==undefined){pend++;lastV=parseInt(m[N+1],10)||1;continue;}
     var gi=-1;for(var g=1;g<=N;g++){if(m[g]!==undefined){gi=g-1;break;}}
@@ -619,7 +619,7 @@ function allokUndoable(s){
 
 /* Proper sentences for the SCB checklist, built from the Main sheet text */
 function replEntries(text){
-  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=[],hold=[],last=[],N=RCOMP.length,out=[];
+  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/\d+(?:\/\d+)*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=[],hold=[],last=[],N=RCOMP.length,out=[];
   while((m=re.exec(low))){
     if(m[N+1]!==undefined){pend.push(m[N+1]);continue;}
     var gi=-1;for(var g=1;g<=N;g++){if(m[g]!==undefined){gi=g-1;break;}}
@@ -1332,6 +1332,81 @@ function exportXlsx(){
   toast('Preparing file…');
   buildWorkbook(src).xlsx.writeBuffer().then(function(buf){return deliver(name,buf,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}).catch(function(){toast('Could not build the file');});
 }
+var MATGRP=['32CM','42CM','16CM','MC4','FUSE','FH','OTHER'];
+function matName(kind,pol,size){
+  if(kind==='link')return (pol==='P'?'P':'N')+'-Link cable With Threaded MC4 Connector ('+size+')';
+  if(kind==='mc4')return 'MC4 SCB END ('+(pol==='P'?'Male':'Female')+')';
+  if(kind==='fuse')return 'Fuse-32A';
+  if(kind==='fh')return 'Fuse Holder';
+  return kind;
+}
+function matGroup(m){
+  var x=/Link cable.*\((\d+CM)\)/i.exec(m);if(x)return x[1].toUpperCase();
+  if(/MC4 SCB END/i.test(m))return 'MC4';if(/^Fuse-/i.test(m))return 'FUSE';if(/Fuse Holder/i.test(m))return 'FH';
+  if(/16 Sq/i.test(m))return '16CM';return 'OTHER';
+}
+function replMatRows(text){
+  var low=String(text||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/\d+(?:\/\d+)*\)/g,' '),re=new RegExp(RCRE,'g'),m,pend=[],hold=[],last=[],lastAny=[],N=RCOMP.length,out=[];
+  function add(str,np,q,mat){out.push({str:str,np:np,qty:q,mat:mat});}
+  while((m=re.exec(low))){
+    if(m[N+1]!==undefined){pend.push(m[N+1]);continue;}
+    var gi=-1;for(var g=1;g<=N;g++){if(m[g]!==undefined){gi=g-1;break;}}
+    if(gi<0)continue;
+    var comp=RCOMP[gi],nums=[],c=comp.c;
+    if(comp.ns)nums=[];
+    else if(comp.wh){var seen={};hold.forEach(function(h){var k=h.s+'|'+h.p;if(!seen[k]){seen[k]=1;nums.push(h);}});nums.sort(function(a,b){return a.s-b.s;});hold=[];if(!nums.length)nums=pend.map(function(x){return {s:x,p:''};});}
+    else if(pend.length)nums=pend.slice();
+    else if(comp.g&&last.length)nums=last.slice();
+    if(comp.g&&pend.length)last=pend.slice();
+    if(!nums.length&&!comp.ns&&(c==='MC4 male'||c==='MC4 female')&&lastAny.length)nums=[lastAny.length===1?lastAny[0]:lastAny.join(',')];
+    if(pend.length&&!comp.ns)lastAny=pend.slice();
+    var q=comp.qty?(pend.length?(parseInt(pend[pend.length-1],10)||1):1):1;
+    if(c==='FHN'||c==='FHP'){var p=c==='FHN'?'N':'P';(nums.length?nums:['']).forEach(function(x){add(x,p,1,matName('fh'));});hold=hold.concat(nums.map(function(x){return {s:x,p:p};}));}
+    else if(c==='FN'||c==='FP'){var p2=c==='FN'?'N':'P';(nums.length?nums:['']).forEach(function(x){add(x,p2,1,matName('fuse'));});}
+    else if(c==='Fuse'){(nums.length?nums:[{s:'',p:''}]).forEach(function(h){add(h.s,h.p,1,matName('fuse'));});}
+    else if(/L\.C\./.test(c)){var lm=/^(\d+)CM L\.C\.([PN])$/.exec(c);(nums.length?nums:['']).forEach(function(x){add(x,lm[2],1,matName('link',lm[2],lm[1]+'CM'));});}
+    else if(c==='MC4 male'||c==='MC4 female'){var mp=c==='MC4 male'?'P':'N';(nums.length?nums:['']).forEach(function(x){add(x,mp,1,matName('mc4',mp));});}
+    else if(c==='Door hinge')add('','',q,'Door Hinge');
+    else if(c==='DC-DC converter')add('','',1,'DC/DC Converter');
+    else if(c==='FH bus link'||c==='16 sq mm cable'){var nm=c==='FH bus link'?'FH Link Busbar':'16 Sq.mm link cable',ns=nums.slice().sort(function(a,b){return a-b;});
+      if(!ns.length)add('','',1,nm);for(var k=0;k<ns.length;k+=2)add(ns.slice(k,k+2).join(','),'',1,nm);}
+    pend=[];
+  }
+  return out;
+}
+function matRowsAll(src){
+  var rows=[];
+  src.scbs.forEach(function(s){replMatRows(s.replaced).forEach(function(x){x.blk=numOr(s.block);x.inv=numOr(s.inv);x.scb=numOr(s.scb);rows.push(x);});});
+  function cmp(a,b){return (typeof a==='number'&&typeof b==='number')?a-b:String(a).localeCompare(String(b),undefined,{numeric:true});}
+  rows.sort(function(a,b){var ga=MATGRP.indexOf(matGroup(a.mat)),gb=MATGRP.indexOf(matGroup(b.mat));
+    return ga-gb||cmp(a.blk,b.blk)||cmp(a.inv,b.inv)||cmp(a.scb,b.scb)||(parseInt(a.str,10)||0)-(parseInt(b.str,10)||0)||(a.np<b.np?-1:a.np>b.np?1:0);});
+  return rows;
+}
+function buildMatWorkbook(src){
+  var rows=matRowsAll(src),wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Material Consumption'),NAVY='FF1F3864',A='FFF3F6FB',B='FFFFFFFF';
+  var thin={style:'thin',color:{argb:'FFB8C2D0'}},bd={top:thin,left:thin,bottom:thin,right:thin};
+  function head(row){row.height=24;row.eachCell(function(c){c.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};c.alignment={horizontal:'center',vertical:'middle'};c.border=bd;});}
+  ws.columns=[{width:9},{width:11},{width:7},{width:9},{width:6},{width:6},{width:46}];
+  head(ws.addRow(['BLOCK','INVERTER','SCB','STRING','N/P','Qty','MATERIAL USED']));
+  rows.forEach(function(x,i){var r=ws.addRow([x.blk,x.inv,x.scb,String(x.str).indexOf(',')>=0?String(x.str):numOr(x.str),x.np,x.qty,x.mat]);r.height=18;
+    r.eachCell({includeEmpty:true},function(c,n){c.font={name:'Calibri',size:11};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:i%2?B:A}};c.border=bd;c.alignment={horizontal:n===7?'left':'center',vertical:'middle'};});});
+  ws.views=[{state:'frozen',ySplit:1}];ws.autoFilter={from:{row:1,column:1},to:{row:1,column:7}};
+  var tot={};rows.forEach(function(x){tot[x.mat]=(tot[x.mat]||0)+x.qty;});
+  var w2=wb.addWorksheet('Usage Summary');w2.columns=[{width:46},{width:12}];head(w2.addRow(['MATERIAL USED','TOTAL QTY']));
+  Object.keys(tot).sort(function(a,b){return tot[b]-tot[a]||a.localeCompare(b);}).forEach(function(m,i){var r=w2.addRow([m,tot[m]]);r.height=18;
+    r.eachCell(function(c,n){c.font={name:'Calibri',size:11};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:i%2?B:A}};c.border=bd;c.alignment={horizontal:n===1?'left':'center',vertical:'middle'};});});
+  return {wb:wb,n:rows.length};
+}
+function exportMat(){
+  var src=expSrc();
+  if(!src.scbs.length){toast('Nothing to export');return;}
+  if(!window.ExcelJS){toast('The Excel library did not load. Check the connection and reload.');return;}
+  var b=buildMatWorkbook(src);
+  if(!b.n){toast('No replaced components entered for the done SCBs');return;}
+  var name='SCB_PM_Material_Consumption_'+fileLabel(src).replace(/\./g,'-')+'.xlsx';
+  toast('Preparing file…');
+  b.wb.xlsx.writeBuffer().then(function(buf){return deliver(name,buf,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}).catch(function(){toast('Could not build the file');});
+}
 function exportPdf(){
   var src=expSrc();
   if(!src.scbs.length){toast('Nothing to export');return;}
@@ -1365,8 +1440,8 @@ function renderExport(){
    ''+
    (S.archive.length?'<div class="filters"><button type="button" class="fchip" data-expday="cur" aria-pressed="'+(ui.expDay==='cur')+'">Current list</button>'+S.archive.map(function(a){return '<button type="button" class="fchip" data-expday="'+a.id+'" aria-pressed="'+(String(ui.expDay)===String(a.id))+'">'+fmtDate(a.date)+'</button>';}).join('')+'</div>':'')+
    expTable(dataset(ui.exp,src))+'<textarea id="out" readonly tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">'+esc(dataset(ui.exp,src))+'</textarea>'+
-   '<div class="navrow" style="margin-top:12px"><button type="button" class="btn pri" data-xlsx="1">Download Excel file (.xlsx)</button><button type="button" class="btn pri" data-pdf="1">Download main sheet PDF</button><button type="button" class="btn" data-copy="1">Copy table to clipboard</button><button type="button" class="btn" data-copyir="1">Copy IR images only</button></div>'+
-   '<p class="hint">The Excel file is one workbook for the selected date. It has the Main sheet and one checklist sheet for each SCB, laid out like your standard form. </p><p class="hint" id="dlstat" style="margin-top:8px">Status: Excel library '+(window.ExcelJS?'loaded':'NOT loaded')+' · File saving '+(ui.dl?'available':'NOT available in this view')+(navigator.canShare?' · Share sheet supported':' · Share sheet not supported')+'</p></section></div>';
+   '<div class="navrow" style="margin-top:12px"><button type="button" class="btn pri" data-xlsx="1">Download Excel file (.xlsx)</button><button type="button" class="btn pri" data-pdf="1">Download main sheet PDF</button><button type="button" class="btn pri" data-matx="1">Download material usage Excel</button><button type="button" class="btn" data-copy="1">Copy table to clipboard</button><button type="button" class="btn" data-copyir="1">Copy IR images only</button></div>'+
+   '<p class="hint">The material usage file lists every replaced item per string (block, inverter, SCB, string, N/P, quantity), with a summary sheet of totals. </p><p class="hint">The Excel file is one workbook for the selected date. It has the Main sheet and one checklist sheet for each SCB, laid out like your standard form. </p><p class="hint" id="dlstat" style="margin-top:8px">Status: Excel library '+(window.ExcelJS?'loaded':'NOT loaded')+' · File saving '+(ui.dl?'available':'NOT available in this view')+(navigator.canShare?' · Share sheet supported':' · Share sheet not supported')+'</p></section></div>';
   setPane(h);
 }
 function setPane(h){var p=$('pane'),t=p.scrollTop;p.innerHTML=h;p.scrollTop=t;}
@@ -1728,6 +1803,7 @@ pane.addEventListener('click',function(e){
   if(d.exp){ui.exp=d.exp;renderExport();return;}
   if(d.expdate!==undefined){ui.expDate=d.expdate;renderExport();return;}
   if(d.xlsx){exportXlsx();return;}
+  if(d.matx){exportMat();return;}
   if(d.pdf){exportPdf();return;}
   if(d.copyir){var irt=expSrc().scbs.map(function(x){return String(x.irBefore==null?'':x.irBefore).replace(/[\t\r\n]+/g,' ')+'\t'+String(x.irAfter==null?'':x.irAfter).replace(/[\t\r\n]+/g,' ');}).join('\n');
     var irf=function(){var t=document.createElement('textarea');t.value=irt;t.style.cssText='position:fixed;left:-9999px';document.body.appendChild(t);t.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(t);toast(ok?'IR images copied (Before and After). Paste into Excel.':'Could not copy');};
