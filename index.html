@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#0b4f9c">
 <link rel="icon" href="icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes">
-<meta name="app-version" content="63">
+<meta name="app-version" content="64">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -423,7 +423,18 @@ table.mt td:nth-child(12),table.mt td:nth-child(13),table.mt th:nth-child(12),ta
 #rp .rb.rbs{text-align:left;justify-content:flex-start;height:auto;min-height:48px;padding:8px 14px;white-space:normal;font-weight:600;font-size:.9375rem}
 table.mt td.pc{position:relative;padding-right:0}
 table.mt td.pc textarea.ci{width:100%!important;min-width:0;min-height:50px;height:50px;resize:none;overflow-y:auto;font-size:.9375rem;line-height:1.25;padding:4px 72px 4px 8px;box-sizing:border-box}
-.lg{width:auto}.lgD{display:none}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lgL{display:none}:root:not([data-theme="light"]) .lgD{display:block}}:root[data-theme="dark"] .lgL{display:none}:root[data-theme="dark"] .lgD{display:block}.bA{display:flex;align-items:center;gap:14px}.bA .lg{height:58px}.bA h1{margin:0;padding-left:14px;border-left:1px solid var(--muted)}</style>
+.lg{width:auto}.lgD{display:none}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lgL{display:none}:root:not([data-theme="light"]) .lgD{display:block}}:root[data-theme="dark"] .lgL{display:none}:root[data-theme="dark"] .lgD{display:block}.bA{display:flex;align-items:center;gap:14px}.bA .lg{height:58px}.bA h1{margin:0;padding-left:14px;border-left:1px solid var(--muted)}/* dark theme contrast boost */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--muted:#c2cddc;--accent:#8fc0ff}:root:not([data-theme="light"]) .nowb{background:#8fc0ff;color:#04182f;border-color:#8fc0ff}
+:root:not([data-theme="light"]) .eqopen{color:#ffd37a}
+:root:not([data-theme="light"]) .tv0{color:#b9c6d8}
+:root:not([data-theme="light"]) .tcw::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c2cddc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center/contain no-repeat}
+}
+:root[data-theme="dark"]{--muted:#c2cddc;--accent:#8fc0ff}
+:root[data-theme="dark"] .nowb{background:#8fc0ff;color:#04182f;border-color:#8fc0ff}
+:root[data-theme="dark"] .eqopen{color:#ffd37a}
+:root[data-theme="dark"] .tv0{color:#b9c6d8}
+:root[data-theme="dark"] .tcw::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c2cddc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center/contain no-repeat}
+</style>
 
 <div class="app">
   <header class="top">
@@ -550,7 +561,7 @@ var PLAN=[[143,1,1,10],[143,2,1,10],[143,3,2,10],[143,3,9,12],[143,4,2,10],[143,
 var MAXSTR=16;
 
 /* ---------- state ---------- */
-var APP_VER=63;
+var APP_VER=64;
 var LS='scb-pm-field-v1', TH='scb-pm-theme';
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push('');return a;}
 function newScb(b,i,s,r,n,d){return {block:String(b),inv:String(i),scb:String(s),row:String(r||'232'),strings:n,planned:d||'2026-05-08',comm:'',remNo:'',loto:false,start:'',end:'',irBefore:'',irAfter:'',replaced:'',obs:'',remarks:'',checks:{},notes:{},mtime:'',voc:blank(MAXSTR),imp:blank(MAXSTR),vocT:'',impT:''};}
