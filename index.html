@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#0b4f9c">
 <link rel="icon" href="icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes">
-<meta name="app-version" content="65">
+<meta name="app-version" content="71">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -562,7 +562,7 @@ var PLAN=[[143,1,1,10],[143,2,1,10],[143,3,2,10],[143,3,9,12],[143,4,2,10],[143,
 var MAXSTR=16;
 
 /* ---------- state ---------- */
-var APP_VER=65;
+var APP_VER=71;
 var LS='scb-pm-field-v1', TH='scb-pm-theme';
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push('');return a;}
 function newScb(b,i,s,r,n,d){return {block:String(b),inv:String(i),scb:String(s),row:String(r||'232'),strings:n,planned:d||'2026-05-08',comm:'',remNo:'',loto:false,start:'',end:'',irBefore:'',irAfter:'',replaced:'',obs:'',remarks:'',checks:{},notes:{},mtime:'',voc:blank(MAXSTR),imp:blank(MAXSTR),vocT:'',impT:''};}
@@ -652,6 +652,42 @@ function stOver(text,n){var low=String(text||'').replace(/\([^)]*\)/g,' ').repla
   var r2=/(?:^|[^\w.])(\d+)\s*(?:fhn|fhp|fn|fp)\b/gi;while((m=r2.exec(low))){var k2=parseInt(m[1],10);if((k2>n||k2<1)&&bad.indexOf(String(k2))<0)bad.push(String(k2));}
   while((m=re.exec(low))){m[1].split(/\s*(?:,|&|and)\s*/i).forEach(function(v){var k=parseInt(v,10);if((k>n||k<1)&&bad.indexOf(String(k))<0)bad.push(String(k));});}
   return bad;}
+function fhRetight(text){var o={N:[],P:[]},t=String(text||'').replace(/\([^)]*\)/g,' '),re=/((?:(?:ST\.?\s*-?\s*)?[\d,]*\s*FH[NP]\s*(?:&\s*)?)+)re\s*-?\s*tightness\s*done\.?/gi,m;
+  while((m=re.exec(t))){var pr=/(?:ST\.?\s*-?\s*)?([\d,]*)\s*(FH[NP])/gi,q,last=[];while((q=pr.exec(m[1]))){var nm=q[1].replace(/^,+|,+$/g,'');var ns=nm?nm.split(',').filter(Boolean).map(function(x){return String(parseInt(x,10));}):last;if(nm)last=ns;var pl=q[2].toUpperCase().slice(2);ns.forEach(function(x){if(o[pl].indexOf(x)<0)o[pl].push(x);});}}
+  return o;}
+function fhReplaced(text){var o={N:[],P:[]};try{replEntries(text).forEach(function(it){if(it.c==='FHN'||it.c==='FHP'){var pl=it.c.slice(2);it.nums.forEach(function(x){x=String(x);if(o[pl].indexOf(x)<0)o[pl].push(x);});}});}catch(e){}return o;}
+function fhConflict(s){var a=fhReplaced(s.replaced),b=fhRetight(obsText(s)),out=[];['N','P'].forEach(function(pl){var x=a[pl].filter(function(n){return b[pl].indexOf(n)>=0;});if(x.length)out.push({pol:'FH'+pl,strs:x});});return out;}
+var MERGEC=['FHN','FHP','42CM L.C.P','32CM L.C.P','42CM L.C.N','32CM L.C.N','MC4 male','MC4 female','FN','FP'];
+function replSig(t){var tot={},fl=[];try{replTotals(t,tot);replEntries(t).forEach(function(x){if(x.nums.length)x.nums.forEach(function(n){fl.push(x.c+'#'+n+'#'+x.q);});else fl.push(x.c+'##'+x.q);});}catch(e){}return JSON.stringify(Object.keys(tot).sort().map(function(k){return [k,tot[k]];}))+'|'+fl.sort().join(',');}
+function replMerge(text){
+  text=String(text||'');
+  MERGEC.forEach(function(c){
+    var comp=RCOMP.filter(function(x){return x.c===c;})[0];if(!comp)return;
+    var holder=!!comp.m['Fuse holder'];
+    [false,true].forEach(function(hf){
+      if(hf&&!holder)return;
+      var base0=text;
+      var re=new RegExp('(?:\\bst\\.?\\s*)?(\\d+(?:\\s*,\\s*\\d+)*)\\s+'+comp.re+'(?![a-z0-9])'+(holder?'(\\s+and\\s+fuse(?![a-z]))?':''),'gi'),ms=[],m;
+      while((m=re.exec(text))){
+        var fz=!!(holder&&m[2]);if(fz!==hf)continue;
+        if(/^\s*(?:&|and)\s*(?:fh[np]|fn|fp)(?![a-z0-9])/i.test(text.slice(m.index+m[0].length)))continue;
+        ms.push({a:m.index,b:m.index+m[0].length,n:m[1].split(/\s*,\s*/)});}
+      if(ms.length<2)return;
+      var u=[];ms.forEach(function(x){x.n.forEach(function(v){v=String(parseInt(v,10));if(u.indexOf(v)<0)u.push(v);});});
+      u.sort(function(a,b){return a-b;});
+      var sig0=replSig(base0);
+      for(var i=ms.length-1;i>=0;i--){var x=ms[i];
+        if(i===0){text=text.slice(0,x.a)+'ST. '+u.join(',')+' '+comp.t+(hf?' and fuse':'')+text.slice(x.b);}
+        else{var bf=text.slice(0,x.a),q=/(?:\s*(?:,|&|\band\b))\s*$/i.exec(bf);
+          if(q)text=text.slice(0,q.index)+text.slice(x.b);
+          else{var af=/^\s*,\s*/.exec(text.slice(x.b));text=text.slice(0,x.a)+text.slice(x.b+(af?af[0].length:0));}}
+      }
+      if(replSig(text)!==sig0)text=base0;
+    });
+  });
+  return text.replace(/\s+,/g,',').replace(/ {2,}/g,' ');
+}
+function replNoStr(text){var out=[];try{replEntries(text).forEach(function(it){if(it.c==='Door hinge'||it.c==='DC-DC converter')return;if(!it.nums.length&&out.indexOf(it.c)<0)out.push(it.c);});}catch(e){}return out;}
 function lcSize(n){return ((+n-1)%4)<2?42:32;}
 function linkSizeBad(text){var out=[];replEntries(text).forEach(function(it){var mm=/^(42|32)CM L\.C\.[PN]$/.exec(it.c);if(!mm)return;var sz=+mm[1],bad=it.nums.filter(function(n){return lcSize(n)!==sz;});if(bad.length)out.push({c:it.c,bad:bad,size:sz});});return out;}
 function replTotals(text,tot){
@@ -765,7 +801,7 @@ function stat(s){
   var m=0,i;for(i=0;i<s.strings;i++){if(String(s.voc[i])!==''&&String(s.imp[i])!=='')m++;}
   var o=outliers(s),fl=Object.keys(o.voc).length+Object.keys(o.imp).length;
   var touched=ans||m||s.start||s.end||s.obsPh||s.remNo||s.irBefore||s.irAfter||s.replaced||s.obs||s.remarks;
-  var done=ans===ALL.length;
+  var done=ans===ALL.length&&m>=s.strings;
   return {ans:ans,nok:nok,m:m,flags:fl,state:done?'done':(touched?'wip':'new'),o:o};
 }
 function comm(s){return s.comm||'';}
@@ -974,6 +1010,8 @@ function missing(s){var m=[];
   var rr=replRepeats(s.replaced);if(rr.length)m.push('repeated entry '+rr.join(' & ')+' (counted once)');
   linkSizeBad(s.replaced).forEach(function(x){m.push('wrong link cable size: ST. '+x.bad.join(',')+' not '+x.size+'CM');});
   [['observations',obsText(s)],['remarks',remText(s)]].forEach(function(p){var b=stOver(p[1],s.strings);if(b.length)m.push('string '+b.join(',')+' in '+p[0]+' (SCB has '+s.strings+' strings)');});
+  var ns0=replNoStr(s.replaced);if(ns0.length)m.push('string number missing for '+ns0.join(' & '));
+  fhConflict(s).forEach(function(x){m.push('ST. '+x.strs.join(',')+' '+x.pol+' replaced and also re-tightened');});
   return m;}
 function stCell(s){var st=stat(s),m=missing(s);var xi=S.scbs.indexOf(s);return '<span class="pill '+st.state+'">'+STL[st.state]+'</span>'+(m.length?'<div class="miss">Check: '+m.join(', ')+'</div>':'')+(xi>=0&&replRepeats(s.replaced).length?'<button type="button" class="rmrep" data-rmrep="'+xi+'">Remove repeat</button>':'');}
 function twins(i){var s=S.scbs[i],r=[];S.scbs.forEach(function(o,k){if(k!==i&&o.block===s.block&&String(o.scb)===String(s.scb)&&o.planned===s.planned)r.push(k);});return r;}
@@ -1524,6 +1562,8 @@ function exportIssues(src){
     var rp2=[];['irBefore','irAfter'].forEach(function(k){imgTok(s[k]).forEach(function(v){if(cnt[v]>1&&rp2.indexOf(v)<0)rp2.push(v);});});replImgs(s.replaced).forEach(function(v){if(cnt[v]>1&&rp2.indexOf(v)<0)rp2.push(v);});
     if(rp2.length)add(s,'w','Image number '+rp2.join(', ')+' used more than once');
     linkSizeBad(s.replaced).forEach(function(x){add(s,'e','Link cable '+x.size+'CM entered for string '+x.bad.join(', ')+', which needs '+(x.size===42?32:42)+'CM');});
+    var ns1=replNoStr(s.replaced);if(ns1.length)add(s,'e','Replaced components: no string number for '+ns1.join(' & '));
+    fhConflict(s).forEach(function(x){add(s,'e','ST. '+x.strs.join(', ')+' '+x.pol+' is in Replaced components and also marked re-tightened in Observations');});
     var rr=replRepeats(s.replaced);if(rr.length)add(s,'w','"'+rr.join('" and "')+'" entered twice, counted once');
     var mm=0;for(var i=0;i<s.strings;i++){if(String(s.voc[i]||'')!==''&&String(s.imp[i]||'')!=='')mm++;}
     if(mm===0)add(s,'w','No Voc and Imp readings entered');else if(mm<s.strings)add(s,'w','Voc and Imp readings missing for '+(s.strings-mm)+' of '+s.strings+' strings');
@@ -1931,19 +1971,22 @@ rpEl.addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b)return;var d=b.dataset,sc=S.scbs[rp.i];if(!sc)return;
   if(d.rpn){var v=+d.rpn,x=rp.sel.indexOf(v);if(x>=0)rp.sel.splice(x,1);else{rp.sel.push(v);rp.sel.sort(function(a,b2){return a-b2;});}rpRender();return;}
   if(d.rpc!==undefined){var rc=RCOMP[+d.rpc],cur0=String(sc.replaced||'').replace(/[,\s]+$/,''),ent;
+    if(!rc.ns&&!rp.sel.length){errBar('Select the string numbers first');return;}
     if(rc.qty){var hm=/(?:^|, )(?:(\d+) )?door hinge$/i.exec(cur0);
       if(hm&&!rp.sel.length){if((parseInt(hm[1],10)||1)>=3){errBar('Door hinge already at 3','An SCB has 3 door hinges at most.');return;}sc.replaced=cur0.slice(0,hm.index)+(hm.index?', ':'')+((parseInt(hm[1],10)||1)+1)+' door hinge';rp.sel=[];rpSync();rpRender();return;}
       ent=(rp.sel.length===1?rp.sel[0]+' ':'')+rc.t;}
     else ent=(rp.sel.length&&!rc.ns?'ST. '+rp.sel.join(',')+' ':'')+rc.t;
+    if((rc.c==='FHN'||rc.c==='FHP')&&rp.sel.length){var fr2=fhRetight(obsText(sc))[rc.c.slice(2)],fb2=rp.sel.filter(function(n){return fr2.indexOf(String(n))>=0;});if(fb2.length){errBar('ST. '+fb2.join(',')+' '+rc.c+' already marked re-tightened');return;}}
     var lm=/^(42|32)CM L\.C\./.exec(rc.c);
     if(lm&&rp.sel.length){var lb=rp.sel.filter(function(n){return lcSize(n)!==+lm[1];});if(lb.length){errBar('ST. '+lb.join(',')+' use '+(+lm[1]===42?32:42)+'CM link cables, not '+lm[1]+'CM');return;}}
     var nt0=cur0?cur0+', '+ent:ent;if(replRepeats(nt0).length>replRepeats(cur0).length){errBar(ent+' is already added','Not added again \u2014 each item counts once.');rp.sel=[];rpSync();rpRender();return;}
-    sc.replaced=nt0;rp.sel=[];rpSync();rpRender();return;}
+    sc.replaced=replMerge(nt0);rp.sel=[];rpSync();rpRender();return;}
   if(d.rps!==undefined){var sn=(rp.sl||[])[+d.rps];if(sn===undefined)return;
     if(rp.k==='obs'){var T0=RPK.obs.get(sc).trim(),cont=/^[a-z]/.test(sn),nm=rp.sel.join(',');pxSet(sc,'obs',(T0?T0+' ':'')+(!cont?stNums(nm,sn):'')+sn);}
     else pxAppend(sc,rp.k,rp.sel.join(','),sn);
     rp.sel=[];rpSync();rpRender();return;}
-  if(d.rpp){var TE=' re tightness done.',T1=RPK.obs.get(sc).trim().replace(/\s*re tightness done\.?$/i,'').trim(),join=/(?:FHN|FHP)$/.test(T1),pc=(rp.sel.length?(join?'':'ST. ')+rp.sel.join(',')+' ':'')+d.rpp;pxSet(sc,'obs',(join?T1+' & ':(T1?T1+' ':''))+pc+TE);rp.sel=[];rpSync();rpRender();return;}
+  if(d.rpp){if(rp.sel.length){var fr=fhReplaced(sc.replaced),fb=[];(d.rpp.match(/FH[NP]/g)||[]).forEach(function(pn){var pl=pn.slice(2);rp.sel.forEach(function(n){if(fr[pl].indexOf(String(n))>=0)fb.push([pn,n]);});});if(fb.length){var ps={};fb.forEach(function(x){(ps[x[0]]=ps[x[0]]||[]).push(x[1]);});errBar(Object.keys(ps).map(function(k){return 'ST. '+ps[k].join(',')+' '+k;}).join(' & ')+' already replaced');return;}}
+    var TE=' re tightness done.',T1=RPK.obs.get(sc).trim().replace(/\s*re tightness done\.?$/i,'').trim(),join=/(?:FHN|FHP)$/.test(T1),pc=(rp.sel.length?(join?'':'ST. ')+rp.sel.join(',')+' ':'')+d.rpp;pxSet(sc,'obs',(join?T1+' & ':(T1?T1+' ':''))+pc+TE);rp.sel=[];rpSync();rpRender();return;}
     if(d.rpfuse){var cf=String(sc.replaced||'').replace(/[,\s]+$/,'');if(!cf){errBar('Add the fuse holders first','Tap the strings and FHN / FHP, then tap Fuse too.');return;}if(!/ and fuse$/i.test(cf)){if(replRepeats(cf+' and fuse').length>replRepeats(cf).length){errBar('That fuse is already added','The same string and fuse is already in the list.');return;}sc.replaced=cf+' and fuse';}rp.sel=[];rpSync();rpRender();return;}
   if(d.rpslash){var ii=$('rp-img'),vv=String(rp.img||'');if(vv&&vv.slice(-1)!=='/'){vv+='/';rp.img=vv;}if(ii){ii.value=vv;ii.focus();try{ii.setSelectionRange(vv.length,vv.length);}catch(_){}}return;}
   if(d.rpundo&&rp.k==='obs'&&/(?:FH[NP])\s+re tightness done\.?$/i.test(RPK.obs.get(sc).trim())){var T3=RPK.obs.get(sc).trim().replace(/\s*re tightness done\.?$/i,'').replace(/(?:^|\s*&\s*|\s+)(?:ST\.\s*)?(?:\d+(?:,\d+)*\s+)?FH[NP]$/i,'').trim();if(/FH[NP]$/i.test(T3))T3+=' re tightness done.';pxSet(sc,'obs',T3);rp.sel=[];rpSync();rpRender();return;}
@@ -2062,6 +2105,7 @@ pane.addEventListener('keydown',function(e){
   if(e.key==='Enter'&&e.target.dataset.nin){e.preventDefault();var bb=pane.querySelector('[data-nadd="'+e.target.dataset.nin+'"]');if(bb)bb.click();}
 });
 pane.addEventListener('change',function(e){
+  var t0=e.target;if(t0.dataset&&t0.dataset.jf==='replaced'&&t0.dataset.ji!==undefined){var r0=S.scbs[+t0.dataset.ji];if(r0){var nv0=replMerge(t0.value);if(nv0!==t0.value){r0.replaced=nv0;t0.value=nv0;autoMats();save();if(ui.view==='main'){updMainRow(+t0.dataset.ji);markDups();fit(t0);}}}return;}
   var t=e.target;if(t.dataset.eq===undefined)return;
   var i=+t.dataset.eq,s=S.scbs[i];if(!s)return;
   var m=String(t.value).trim().match(/^BLK_([A-Za-z0-9]+)_INV_(\d+)_SCB_(\d+)$/i);
