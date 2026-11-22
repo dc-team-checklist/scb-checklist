@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#0b4f9c">
 <link rel="icon" href="icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes">
-<meta name="app-version" content="61">
+<meta name="app-version" content="63">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -550,7 +550,7 @@ var PLAN=[[143,1,1,10],[143,2,1,10],[143,3,2,10],[143,3,9,12],[143,4,2,10],[143,
 var MAXSTR=16;
 
 /* ---------- state ---------- */
-var APP_VER=61;
+var APP_VER=63;
 var LS='scb-pm-field-v1', TH='scb-pm-theme';
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push('');return a;}
 function newScb(b,i,s,r,n,d){return {block:String(b),inv:String(i),scb:String(s),row:String(r||'232'),strings:n,planned:d||'2026-05-08',comm:'',remNo:'',loto:false,start:'',end:'',irBefore:'',irAfter:'',replaced:'',obs:'',remarks:'',checks:{},notes:{},mtime:'',voc:blank(MAXSTR),imp:blank(MAXSTR),vocT:'',impT:''};}
@@ -573,7 +573,12 @@ ensureNames();
 S.names.v=3;
 var ui={syd:{},day:'',filter:'all',view:'main',exp:'summary',armed:null,unlocked:false,phrOpen:false,expDay:'cur',imp:{text:'',replace:null},gen:{comm:'',block:'',inv:'',scb:'',strings:'10',row:'232',date:''}};
 var saveT=null;
-function save(){try{autoMats();}catch(e){}clearTimeout(saveT);saveT=setTimeout(function(){try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}if(window.sySoon)window.sySoon();},250);}
+var AUTOCHK={'Door hinge':'1.1.1','FN':'1.2.4','FP':'1.2.4','Fuse':'1.2.4','42CM L.C.P':'1.3.3','32CM L.C.P':'1.3.3','42CM L.C.N':'1.3.3','32CM L.C.N':'1.3.3','MC4 male':'1.3.3','MC4 female':'1.3.3','16 sq mm cable':'1.3.3','DC-DC converter':'1.5.1'};
+function autoChecks(){var ch=false;S.scbs.forEach(function(s){var now={};try{replEntries(s.replaced).forEach(function(it){if(AUTOCHK[it.c])now[AUTOCHK[it.c]]=1;});}catch(e){return;}
+  if(!s.auto)s.auto={};if(!s.checks)s.checks={};
+  Object.keys(now).forEach(function(id){if(!s.auto[id]){s.auto[id]=true;if(s.checks[id]!=='nok')s.checks[id]='nok';ch=true;}});
+  Object.keys(s.auto).forEach(function(id){if(s.auto[id]&&!now[id]){s.auto[id]=false;if(s.checks[id]==='nok')delete s.checks[id];ch=true;}});});return ch;}
+function save(){try{autoChecks();}catch(e){}try{autoMats();}catch(e){}clearTimeout(saveT);saveT=setTimeout(function(){try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}if(window.sySoon)window.sySoon();},250);}
 
 /* ---------- helpers ---------- */
 function $(id){return document.getElementById(id);}
@@ -631,6 +636,10 @@ function replDedupe(text){
   return {t:out,rep:rep};
 }
 function replRepeats(text){return replDedupe(text).rep;}
+function stOver(text,n){var low=String(text||'').replace(/\([^)]*\)/g,' ').replace(/\d+(?:\/\d+)*\)/g,' '),re=/\bst(?:rings?)?\.?\s*-?\s*(\d+(?:\s*(?:,|&|and)\s*\d+)*)/gi,m,bad=[];
+  var r2=/(?:^|[^\w.])(\d+)\s*(?:fhn|fhp|fn|fp)\b/gi;while((m=r2.exec(low))){var k2=parseInt(m[1],10);if((k2>n||k2<1)&&bad.indexOf(String(k2))<0)bad.push(String(k2));}
+  while((m=re.exec(low))){m[1].split(/\s*(?:,|&|and)\s*/i).forEach(function(v){var k=parseInt(v,10);if((k>n||k<1)&&bad.indexOf(String(k))<0)bad.push(String(k));});}
+  return bad;}
 function lcSize(n){return ((+n-1)%4)<2?42:32;}
 function linkSizeBad(text){var out=[];replEntries(text).forEach(function(it){var mm=/^(42|32)CM L\.C\.[PN]$/.exec(it.c);if(!mm)return;var sz=+mm[1],bad=it.nums.filter(function(n){return lcSize(n)!==sz;});if(bad.length)out.push({c:it.c,bad:bad,size:sz});});return out;}
 function replTotals(text,tot){
@@ -808,7 +817,7 @@ function renderScb(){
     h+='<div class="secthead"><h3><span>'+sec.id+'</span>'+sec.title+'</h3></div>';
     sec.items.forEach(function(it){
       var v=s.checks[it[0]]||'';
-      h+='<div class="chk '+v+'"><span class="n">'+it[0]+'</span><p>'+esc(it[1])+(it[0]==='1.5.1'&&s.comm?'<br><span class="sub">Main sheet comm. status: <b>'+esc(s.comm)+'</b></span>':'')+'</p>'+
+      h+='<div class="chk '+v+'"><span class="n">'+it[0]+'</span><p>'+esc(it[1])+(s.auto&&s.auto[it[0]]&&v==='nok'?'<br><span class="sub">Marked NOT OK automatically because a component was replaced.</span>':'')+(it[0]==='1.5.1'&&s.comm?'<br><span class="sub">Main sheet comm. status: <b>'+esc(s.comm)+'</b></span>':'')+'</p>'+
         '<div class="seg"><button type="button" data-chk="'+it[0]+'" data-v="ok" aria-pressed="'+(v==='ok')+'">OK</button><button type="button" data-chk="'+it[0]+'" data-v="nok" aria-pressed="'+(v==='nok')+'">NOT OK</button></div>'+
         ''+'</div>';
     });
@@ -952,6 +961,7 @@ function missing(s){var m=[];
   if(replDup(s))m.push('replaced image number repeated');
   var rr=replRepeats(s.replaced);if(rr.length)m.push('repeated entry '+rr.join(' & ')+' (counted once)');
   linkSizeBad(s.replaced).forEach(function(x){m.push('wrong link cable size: ST. '+x.bad.join(',')+' not '+x.size+'CM');});
+  [['observations',obsText(s)],['remarks',remText(s)]].forEach(function(p){var b=stOver(p[1],s.strings);if(b.length)m.push('string '+b.join(',')+' in '+p[0]+' (SCB has '+s.strings+' strings)');});
   return m;}
 function stCell(s){var st=stat(s),m=missing(s);var xi=S.scbs.indexOf(s);return '<span class="pill '+st.state+'">'+STL[st.state]+'</span>'+(m.length?'<div class="miss">Check: '+m.join(', ')+'</div>':'')+(xi>=0&&replRepeats(s.replaced).length?'<button type="button" class="rmrep" data-rmrep="'+xi+'">Remove repeat</button>':'');}
 function twins(i){var s=S.scbs[i],r=[];S.scbs.forEach(function(o,k){if(k!==i&&o.block===s.block&&String(o.scb)===String(s.scb)&&o.planned===s.planned)r.push(k);});return r;}
@@ -1498,6 +1508,7 @@ function exportIssues(src){
     if(ib&&!ia)add(s,'e','IR image before entered, IR after missing');else if(ia&&!ib)add(s,'e','IR image after entered, IR before missing');
     var bad=[];replEntries(s.replaced).forEach(function(en2){en2.nums.forEach(function(n){if(+n>s.strings&&bad.indexOf(n)<0)bad.push(n);});});
     if(bad.length)add(s,'e','String '+bad.join(', ')+' in replaced components, but this SCB has '+s.strings+' strings');
+    [['observations',obsText(s)],['remarks',remText(s)]].forEach(function(p){var b2=stOver(p[1],s.strings);if(b2.length)add(s,'e','String '+b2.join(', ')+' in '+p[0]+', but this SCB has '+s.strings+' strings');});
     var rp2=[];['irBefore','irAfter'].forEach(function(k){imgTok(s[k]).forEach(function(v){if(cnt[v]>1&&rp2.indexOf(v)<0)rp2.push(v);});});replImgs(s.replaced).forEach(function(v){if(cnt[v]>1&&rp2.indexOf(v)<0)rp2.push(v);});
     if(rp2.length)add(s,'w','Image number '+rp2.join(', ')+' used more than once');
     linkSizeBad(s.replaced).forEach(function(x){add(s,'e','Link cable '+x.size+'CM entered for string '+x.bad.join(', ')+', which needs '+(x.size===42?32:42)+'CM');});
