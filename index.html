@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#0b4f9c">
 <link rel="icon" href="icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes">
-<meta name="app-version" content="71">
+<meta name="app-version" content="74">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -562,7 +562,7 @@ var PLAN=[[143,1,1,10],[143,2,1,10],[143,3,2,10],[143,3,9,12],[143,4,2,10],[143,
 var MAXSTR=16;
 
 /* ---------- state ---------- */
-var APP_VER=71;
+var APP_VER=74;
 var LS='scb-pm-field-v1', TH='scb-pm-theme';
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push('');return a;}
 function newScb(b,i,s,r,n,d){return {block:String(b),inv:String(i),scb:String(s),row:String(r||'232'),strings:n,planned:d||'2026-05-08',comm:'',remNo:'',loto:false,start:'',end:'',irBefore:'',irAfter:'',replaced:'',obs:'',remarks:'',checks:{},notes:{},mtime:'',voc:blank(MAXSTR),imp:blank(MAXSTR),vocT:'',impT:''};}
@@ -1203,7 +1203,7 @@ function renderJob(){
   }
   h+='</section>';
   h+='<section class="card"><h2>New day</h2><p class="hint" style="margin:-6px 0 12px">For the next day, copy the summary from Export, then paste the new list in the box above with Replace the current list ticked. Clear entries keeps the SCB list and wipes every reading, check, remark and material count. Clear list removes all locations.</p><div class="navrow"><button type="button" class="btn danger" data-clearentries="1">Clear entries</button><button type="button" class="btn danger" data-clearlist="1">Clear list</button></div></section>';
-  h+=syncCard()+'</div>';
+  h+=syncCard()+bkCard()+'</div>';
   setPane(h);
 }
 function tsv(rows){return rows.map(function(r){return r.map(function(c){return String(c==null?'':c).replace(/[\t\r\n]+/g,' ');}).join('\t');}).join('\n');}
@@ -1547,7 +1547,7 @@ function exportMat(){
 }
 function exportIssues(src){
   var out=[],cur=(src.scbs===S.scbs)||ui.expDay==='cur',cnt={};
-  function add(s,lv,txt){out.push({s:s,lv:lv,txt:txt,i:cur?S.scbs.indexOf(s):-1});}
+  function add(s,lv,txt){out.push({s:s,lv:lv,txt:txt,i:(cur&&s)?S.scbs.indexOf(s):-1});}
   src.scbs.forEach(function(s){['irBefore','irAfter'].forEach(function(k){imgTok(s[k]).forEach(function(v){cnt[v]=(cnt[v]||0)+1;});});replImgs(s.replaced).forEach(function(v){cnt[v]=(cnt[v]||0)+1;});});
   src.scbs.forEach(function(s){
     var st=String(s.start||''),en=String(s.end||'');
@@ -1569,6 +1569,7 @@ function exportIssues(src){
     if(mm===0)add(s,'w','No Voc and Imp readings entered');else if(mm<s.strings)add(s,'w','Voc and Imp readings missing for '+(s.strings-mm)+' of '+s.strings+' strings');
   });
   out.sort(function(a,b){return (a.lv==='e'?0:1)-(b.lv==='e'?0:1);});
+  dupTechs((src.job||S.job).techs).forEach(function(nm){add(null,'e','Technician '+nm+' is entered more than once');});
   return out;
 }
 var ckEl=$('ck'),ckBox=ckEl.querySelector('.rpc'),ckKind='';
@@ -1579,8 +1580,8 @@ function guardExport(kind){
   var is=exportIssues(src);if(!is.length){runExport(kind);return;}
   ckKind=kind;var cur=ui.expDay==='cur',ne=is.filter(function(x){return x.lv==='e';}).length;
   ckBox.innerHTML='<h3>CHECK BEFORE EXPORT</h3><div class="rps">'+is.length+' thing'+(is.length>1?'s':'')+' to look at in the '+src.scbs.length+' SCBs marked done.'+(ne?' Red ones are likely wrong.':'')+'</div><div class="ckl">'+
-    is.map(function(x){return '<div class="ckit"><span class="ckic '+x.lv+'">'+(x.lv==='e'?'!':'?')+'</span><span class="cknm">'+esc(equip(x.s))+'</span><span>'+esc(x.txt)+'</span><span class="cksp"></span>'+(cur&&x.i>=0?'<button type="button" class="rb" data-ckgo="'+x.i+'">Go to SCB</button>':'')+'</div>';}).join('')+'</div>'+
-    '<div class="rpg" style="margin-top:14px"><button type="button" class="rb" data-ckany="1">Export anyway</button>'+(cur?'<button type="button" class="rb go" data-ckgo="'+is[0].i+'">Fix the first problem</button>':'<button type="button" class="rb go" data-ckx="1">Close</button>')+'</div>';
+    is.map(function(x){return '<div class="ckit"><span class="ckic '+x.lv+'">'+(x.lv==='e'?'!':'?')+'</span><span class="cknm">'+esc(x.s?equip(x.s):'Team')+'</span><span>'+esc(x.txt)+'</span><span class="cksp"></span>'+(cur&&x.i>=0?'<button type="button" class="rb" data-ckgo="'+x.i+'">Go to SCB</button>':'')+'</div>';}).join('')+'</div>'+
+    '<div class="rpg" style="margin-top:14px"><button type="button" class="rb" data-ckany="1">Export anyway</button>'+(cur&&is[0].i>=0?'<button type="button" class="rb go" data-ckgo="'+is[0].i+'">Fix the first problem</button>':'<button type="button" class="rb go" data-ckx="1">Close</button>')+'</div>';
   ckEl.hidden=false;
 }
 ckEl.addEventListener('click',function(e){if(e.target===ckEl){ckClose();return;}var b=e.target.closest('button');if(!b)return;
@@ -1790,6 +1791,45 @@ function sySt(){
 function syLink(){
   return location.href.split('#')[0]+'#room='+encodeURIComponent(sy.cfg.room)+'&db='+encodeURIComponent(sy.cfg.url.replace(/^https:\/\//,''));
 }
+
+function bkCard(){
+  var h='<section class="card"><h2>Backup and restore</h2><p class="hint" style="margin:-6px 0 12px">Save the whole PM (plan, entries, names, material) as one file. If a tablet is cleared or replaced, load the file back.</p>';
+  h+='<div class="navrow"><button type="button" class="btn pri" data-bk="save">Save backup file</button><button type="button" class="btn" data-bk="pick">Restore from file</button></div>';
+  h+='<input type="file" id="bk-file" accept=".json,application/json" style="display:none">';
+  if(ui.bk&&ui.bk.data){h+='<p class="synlog"><b>'+esc(ui.bk.name)+'</b>: '+ui.bk.data.scbs.length+' SCBs'+(ui.bk.saved?', saved '+esc(ui.bk.saved):'')+'. Restoring replaces everything on this tablet.</p><div class="navrow"><button type="button" class="btn pri" data-bk="go">Replace with this backup</button><button type="button" class="btn" data-bk="cancel">Cancel</button></div>';}
+  return h+'</section>';
+}
+function bkAct(a){
+  if(a==='save'){
+    try{clearTimeout(saveT);localStorage.setItem(LS,JSON.stringify(S));}catch(e){}
+    var d=new Date(),z=function(n){return (n<10?'0':'')+n;};
+    var nm='SCB-PM-backup-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'.json';
+    var txt=JSON.stringify({app:'scb-pm',v:1,saved:d.toISOString().slice(0,16).replace('T',' '),S:S});
+    deliver(nm,new TextEncoder().encode(txt).buffer,'application/json');
+  }
+  else if(a==='pick'){var f=$('bk-file');if(f){f.value='';f.click();}}
+  else if(a==='cancel'){ui.bk=null;renderJob();}
+  else if(a==='go'){
+    var b=ui.bk;if(!b||!b.data)return;
+    S=b.data;if(!S.archive)S.archive=[];if(!S.names)S.names={techs:TECHS.slice(),sups:SUPS.slice()};
+    if(!S.names.obs)S.names.obs=PRESETS.slice(0,4);if(!S.names.rem)S.names.rem=PRESETS.slice(4);
+    ensureNames();S.names.v=3;if(!(S.sel>=0&&S.sel<S.scbs.length))S.sel=0;
+    try{syEnsure();}catch(e){}
+    try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}
+    ui.bk=null;save();renderHead();show('job',true);toast('Backup restored');
+  }
+}
+function bkRead(f){
+  if(!f)return;var r=new FileReader();
+  r.onload=function(){
+    try{var o=JSON.parse(r.result),D=o&&o.S?o.S:o;
+      if(!D||!Array.isArray(D.scbs)||!D.job||typeof D.job!=='object')throw 0;
+      ui.bk={data:D,name:f.name,saved:o&&o.saved||''};renderJob();
+    }catch(e){ui.bk=null;errBar('Not a valid backup file');}
+  };
+  r.onerror=function(){errBar('Could not read the file');};
+  r.readAsText(f);
+}
 function syncCard(){
   var h='<section class="card"><h2>Sync between devices</h2>';
   if(!sy.cfg){
@@ -1846,6 +1886,8 @@ function syAct(a){
 var pane=$('pane');
 var FAST=(function(){var o={voc:3,imp:1,pair:1};try{var r=JSON.parse(localStorage.getItem('scb-fast'));if(r){if(typeof r.voc==='number')o.voc=r.voc;if(r.imp===0||r.imp===1)o.imp=r.imp;if(r.pair===0||r.pair===1)o.pair=r.pair;}}catch(e){}return o;})();
 function pairKey(x){var n=parseInt(x.inv,10);if(isNaN(n)||n<1)return null;return String(x.block)+'|'+String(x.scb)+'|'+Math.ceil(n/2);}
+function normName(x){return String(x||'').trim().replace(/\s+/g,' ').toLowerCase();}
+function dupTechs(list){var seen={},out=[];(list||[]).forEach(function(x){var k=normName(x);if(!k)return;if(seen[k]&&out.indexOf(String(x).trim())<0)out.push(String(x).trim());seen[k]=1;});return out;}
 function techCount(){return ((S.job&&S.job.techs)||[]).filter(function(x){return String(x||'').trim();}).length;}
 function pairTime(src,f,oldV,newV){
   var out=[];if(!FAST.pair||(f!=='start'&&f!=='end'))return out;var key=pairKey(src);if(!key)return out;
@@ -2032,6 +2074,7 @@ pane.addEventListener('click',function(e){
   if(d.del!==undefined){var k='del'+d.del;if(ui.armed===k){S.scbs.splice(+d.del,1);if(S.sel>=S.scbs.length)S.sel=Math.max(0,S.scbs.length-1);ui.armed=null;save();renderJob();chrome();}else{ui.armed=k;b.textContent='Tap again';b.classList.add('armed');setTimeout(function(){if(ui.armed===k){ui.armed=null;if(b.isConnected){b.textContent='Remove';b.classList.remove('armed');}}},3000);}return;}
   if(d.go){show(d.go,true);return;}
   if(d.sy){syAct(d.sy);return;}
+  if(d.bk){bkAct(d.bk);return;}
   if(d.lock){ui.unlocked=false;renderJob();toast('PM plan locked');return;}
   if(d.phrtoggle){ui.phrOpen=!ui.phrOpen;var pp=$('phrpanel');if(pp)pp.hidden=!ui.phrOpen;syncPhr();return;}
   if(d.unlock){var a1=($('pin-a')||{}).value||'';
@@ -2077,7 +2120,9 @@ pane.addEventListener('input',function(e){
   else if(d.imp!==undefined){s.imp[+d.imp]=t.value;fastJump(t,'imp',s);}
   else if(d.fast){if(d.fast==='voc'){var fv=parseInt(t.value,10);FAST.voc=isNaN(fv)?0:Math.max(0,Math.min(6,fv));}else if(d.fast==='pair'){FAST.pair=t.checked?1:0;}else{FAST.imp=t.checked?1:0;}fastSave();return;}
   else if(d.j){S.job[d.j]=t.value;}
-  else if(d.tech!==undefined){S.job.techs[+d.tech]=t.value;}
+  else if(d.tech!==undefined){var tk=+d.tech,tv=t.value,tn0=normName(tv),dupk=-1;if(tn0)(S.job.techs||[]).forEach(function(x,k2){if(k2!==tk&&normName(x)===tn0)dupk=k2;});
+    if(dupk>=0){t.value=S.job.techs[tk]||'';errBar(tv+' is already selected');return;}
+    S.job.techs[tk]=tv;}
   else if(d.inst){S.job.inst[d.inst][d.k]=t.value;if(d.k==='cal'){var w=$('cw-'+d.inst);if(w)w.textContent=calWarn(t.value);}}
   else if(d.phrck!==undefined){var ph=S.names.phr[+d.phrck];if(t.checked){if(s.obs.indexOf(ph)<0)s.obs=(s.obs?s.obs.replace(/\s+$/,'')+' ':'')+ph;}else{s.obs=s.obs.split(ph).join('').replace(/\s{2,}/g,' ').replace(/^\s+|\s+$/g,'');}var oe=$('obs');if(oe)oe.value=s.obs;}
   else if(d.impt){ui.imp.text=t.value;var ip=$('imp-prev');if(ip)ip.innerHTML=impPreviewHtml();return;}
@@ -2123,6 +2168,7 @@ $('b-list').addEventListener('click',function(e){e.stopPropagation();$('rail').c
 document.addEventListener('pointerdown',function(e){var r=$('rail');if(r.classList.contains('open')&&!e.target.closest('#rail')&&!e.target.closest('#b-list'))r.classList.remove('open');});
 $('b-main').addEventListener('click',function(){show('main',true);});
 $('b-job').addEventListener('click',function(){show(ui.view==='job'?'main':'job',true);});
+document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='bk-file'&&t.files&&t.files[0])bkRead(t.files[0]);});
 $('b-exp').addEventListener('click',function(){show(ui.view==='exp'?'main':'exp',true);});
 $('b-theme').addEventListener('click',function(){
   var r=document.documentElement,c=r.getAttribute('data-theme');
